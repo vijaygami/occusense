@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>WebApp</h1>
+<p>Person count is <%= count%></p>
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		var socket = io.connect('http://localhost:3000');
+  		socket.emit('new user', {username:"Vivek"});
+  		socket.on('ack new user', function(data){
+  			document.write(data.ack);
+  		});
+	</script>
+
+</body>
+</html> 
+

@@ -6,7 +6,9 @@
 
 var app = require('../app');
 var debug = require('debug')('DepthSense:server');
-var http = require('http');
+var server = require('http').createServer(app);
+var ioServer = require('socket.io')(server);
+var models = require('./schemas/schemas');
 
 /**
  * Get port from environment and store in Express.
@@ -14,12 +16,6 @@ var http = require('http');
 
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
-
-/**
- * Create HTTP server.
- */
-
-var server = http.createServer(app);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -88,3 +84,47 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+// Client-server connection through socket.io
+ioServer.on('connection', function(socket){
+  console.log('New client connected with id = ' + socket.id);
+
+  socket.on('disconnect', function(){
+    console.log(socket.id + ' disconnected!!');
+  });
+  
+  // Custom socket event to assign ID to new user
+  socket.on('request new user id', function(data){
+    var personsCount = models.Person.count();
+    var newPersonID, lastPersonID;
+
+    if (personsCount == 0) {
+      // If no people in database then assign ID = 1
+      newPersonID = 1;
+    } 
+    else {
+      // Else find the max used ID and generate a new ID
+      
+      // Query 'persons' collection to find max used ID
+      models.Person
+        .findOne()
+        .sort('-personID')
+        .exec(function(err, doc)
+          {
+            lastPersonID = doc.personID;
+          });
+
+      // Generate new ID
+      newPersonID  = lastPersonID + 1;
+    }
+
+    userName = "Guest_" + newPersonID;
+
+    // Save user document to 'persons' collection
+    
+
+    // Broadcast new user details to all clients
+    socket.emit('new user', {userID:newPersonID, user:userName})
+
+  })
+})
