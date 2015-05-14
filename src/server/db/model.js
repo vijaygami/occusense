@@ -1,32 +1,5 @@
 var mongoose = require('mongoose');
 
-// Coord schema 
-/*var coordSchema = new mongoose.Schema({
-	x: Number,
-	y: Number,
-	z: Number
-})*/
-
-//Gesture Schema
-var gestureSchema = new mongoose.Schema({
-	gestureName: String,
-	time : { type : Date, default: Date.now }
-})
-
-//Activity Schema
-var activitySchema = new mongoose.Schema({
-	activityName: String,
-	time : { type : Date, default: Date.now }
-})
-
-// Sensor Schema
-var sensorSchema = new mongoose.Schema({
-	sensorID: Number,
-	x: Number,
-	y: Number,
-	z: Number
-})
-
 // Room Schema
 var roomSchema = new mongoose.Schema({
 	roomID: Number,
@@ -36,7 +9,7 @@ var roomSchema = new mongoose.Schema({
 		width: Number,
 		height: Number
 	},
-	sensors: [sensorSchema]
+	sensor: [{sensorID: Number, x: Number}]
 })
 
 // Appliance Schema
@@ -61,40 +34,24 @@ var personSchema = new mongoose.Schema({
 	coord:{
 		x: Number,
 		y: Number,
-		z: Number,
+		z: Number
 	},
 	identified: Boolean,
 	activity: {type: String, enum: ['moving','still','lying']},
-})
-
-//Gesture History
-var gesHistorySchema = new mongoose.Schema({
-	personID: Number,
-	personName: String,
-	gesList: [gestureSchema],
-})
-
-//Activity History
-var actHistorySchema = new mongoose.Schema({
-	personID: Number,
-	personName: String,
-	actList: [activitySchema],
+	gesList: [{gesName: String, gesTime: { type : Date, default: Date.now }}],
+	actList: [{actName: String, actTime: { type : Date, default: Date.now }}]
 })
 
 var Room = mongoose.model('Room', roomSchema);
 var App = mongoose.model('App', appSchema);
 var Person = mongoose.model('Person',personSchema);
-var GesHistory = mongoose.model('GesHistory',gesHistorySchema);
-var ActHistory = mongoose.model('ActHistory',actHistorySchema);
 
 exports.Room = Room;
 exports.App = App;
 exports.Person = Person;
-exports.GesHistory = GesHistory;
-exports.ActHistory = ActHistory;
 
-/* Adding new person documents for testing purposes only
-var p1 = new Person({
+//Adding new person documents for testing purposes only
+/*var p1 = new Person({
 	personID: 10, 
 	personName: "Samuel Jackson",
 	roomID: 1,
