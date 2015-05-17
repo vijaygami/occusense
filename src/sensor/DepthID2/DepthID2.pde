@@ -188,9 +188,12 @@ void setup()
   int[] userList = cam1.getUsers(); //Identifies each user, each user is identified by a number 
   int[] userList2 = cam2.getUsers(); //Identifies each user, each user is identified by a number 
   
+  
+  
   for(int i=0;i<userList.length;i++)
   {
     int ii = userList[i]-1;
+  
     if(cam1.isTrackingSkeleton(userList[i]))
       drawSkeleton(userList[i],cam1);
     
@@ -245,7 +248,7 @@ void setup()
       rotateX(rotX);
     }
     // println("Center of mass of user viewed by cam2: " +com2.x+","+com2.y+","+com2.z);  
-    if(millis()-mm>35){ // 50ms between presses
+    if(millis()-mm>100){ // 50ms between presses
     if(togglesave){
       robot.keyPress('1'); 
       robot.keyRelease('1');
@@ -295,10 +298,7 @@ void setup()
     float[] confidence = new float[9];
     float[] confidence2 = new float[9];
 
-    cam1.update();
-    cam2.update();
-  userList = cam1.getUsers();
-  userList2 = cam2.getUsers();
+
   
   //println("Number of users 1: " + userList.length);
   //println("Number of users 2: " + userList2.length);
@@ -316,22 +316,21 @@ void setup()
   }
 
   for(int i=0;i<userList.length;i++){  
-  //boolean dont_overwrite = false; // bool to prevent overwritting true condition after com match has been found between two cameras
-    cam1.getCoM(userList[i],com);
-  
+    
+  //if(context.getCoM(userList[i],com));  
   
   if(cam1.isTrackingSkeleton(userList[i])){
-        confidence[0] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_HEAD,head);
-        confidence[1] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_NECK,neck);
-        confidence[2] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_SHOULDER,leftshoulder);
-        confidence[3] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_SHOULDER,rightshoulder);
-        confidence[4] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_HIP,lefthip);
-        confidence[5] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_KNEE,leftknee);
-        confidence[6] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_TORSO,torso);
-        confidence[7] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_ELBOW,rightelbow);
-        confidence[8] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_HAND,righthand);
-        userconfidence[i]= min(confidence);        
-        unidentified[i][0] = neck.dist(head);                              //Cervical Spine
+    confidence[0] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_HEAD,head);
+	confidence[1] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_NECK,neck);
+	confidence[2] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_SHOULDER,leftshoulder);
+	confidence[3] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_SHOULDER,rightshoulder);
+	confidence[4] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_HIP,lefthip);
+	confidence[5] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_KNEE,leftknee);
+	confidence[6] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_TORSO,torso);
+	confidence[7] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_ELBOW,rightelbow);
+	confidence[8] = cam1.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_HAND,righthand);
+	userconfidence[i]= min(confidence);        
+	unidentified[i][0] = neck.dist(head);                              //Cervical Spine
     unidentified[i][1] = leftshoulder.dist(rightshoulder); 
     unidentified[i][2] = torso.dist(neck); 
     unidentified[i][3] = neck.dist(head)+leftshoulder.dist(lefthip)+lefthip.dist(leftknee);
@@ -343,58 +342,51 @@ void setup()
     
     
   for(int j=0;j<userList2.length;j++){
-        cam2.getCoM(userList2[j],com2);
-    
-    euc_dist = dist(com.x,com.y,com.z,com2.x,com2.y,com2.z);
-      
-    
-        if(cam2.isTrackingSkeleton(userList2[j])){
+  
+	if(cam2.getCoM(userList2[j],com2) && cam1.getCoM(userList[i],com)){
+		euc_dist = dist(com.x,com.y,com.z,com2.x,com2.y,com2.z);
+	}
 
-      confidence2[0] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_HEAD,head);
-      confidence2[1] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_NECK,neck);
-      confidence2[2] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_LEFT_SHOULDER,leftshoulder);
-      confidence2[3] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_RIGHT_SHOULDER,rightshoulder);
-      confidence2[4] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_LEFT_HIP,lefthip);
-      confidence2[5] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_LEFT_KNEE,leftknee);
-      confidence2[6] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_TORSO,torso);
-      confidence2[7] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_RIGHT_ELBOW,rightelbow);
-      confidence2[8] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_RIGHT_HAND,righthand);
 
-      userconfidence2[j]= min(confidence2);        
-            unidentified2[i][0] = neck.dist(head);                              //Cervical Spine
-      unidentified2[i][1] = leftshoulder.dist(rightshoulder); 
-      unidentified2[i][2] = torso.dist(neck); 
-      unidentified2[i][3] = neck.dist(head)+leftshoulder.dist(lefthip)+lefthip.dist(leftknee);
-      unidentified2[i][4] = torso.dist(lefthip)+torso.dist(leftshoulder); //+torso.dist(leftshoulder)        
-      unidentified2[i][5] = rightshoulder.dist(rightelbow);
-      unidentified2[i][6] = rightelbow.dist(righthand); 
-      unidentified2[i][7] = userconfidence2[i]; 
-    }
-      
-    //println(userconfidence[i]);
+	if(cam2.isTrackingSkeleton(userList2[j])){
+	confidence2[0] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_HEAD,head);
+	confidence2[1] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_NECK,neck);
+	confidence2[2] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_LEFT_SHOULDER,leftshoulder);
+	confidence2[3] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_RIGHT_SHOULDER,rightshoulder);
+	confidence2[4] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_LEFT_HIP,lefthip);
+	confidence2[5] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_LEFT_KNEE,leftknee);
+	confidence2[6] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_TORSO,torso);
+	confidence2[7] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_RIGHT_ELBOW,rightelbow);
+	confidence2[8] = cam2.getJointPositionSkeleton(userList2[j],SimpleOpenNI.SKEL_RIGHT_HAND,righthand);
+	userconfidence2[j]= min(confidence2);        
+	unidentified2[j][0] = neck.dist(head);                              //Cervical Spine
+	unidentified2[j][1] = leftshoulder.dist(rightshoulder); 
+	unidentified2[j][2] = torso.dist(neck); 
+	unidentified2[j][3] = neck.dist(head)+leftshoulder.dist(lefthip)+lefthip.dist(leftknee);
+	unidentified2[j][4] = torso.dist(lefthip)+torso.dist(leftshoulder); //+torso.dist(leftshoulder)        
+	unidentified2[j][5] = rightshoulder.dist(rightelbow);
+	unidentified2[j][6] = rightelbow.dist(righthand); 
+	unidentified2[j][7] = userconfidence2[i]; 
+	}
+ 
  
   
-/*     if (euc_dist < threshold ){
-      same1[i] = true;
-      same2[j] = true;
+    if (euc_dist < threshold ){
+    same1[i] = true;
+    same2[j] = true;
 
-      if (userconfidence[i] > userconfidence2[j]){
-        camera1[i] = true;
-        camera2[j] = false;
-      }
-        
-      else{
-        camera1[i] = false;
-        camera2[j] = true;
-      }
-      
-    } */
- 
+    if (userconfidence[i] >= userconfidence2[j]){
+      camera1[i] = true;
     }
+    else{
+      camera2[j] = true;
+    } 
+    } 
+   }
   } // end for outer loop
-  
-  
   }
+  
+  
      switch(key)
   {
   case ' ':
@@ -405,10 +397,8 @@ void setup()
     int currentguess;
     boolean withinthreshold = true;
     
-    if ((same1[i] && camera1[i]) || !same1[i]){
-      
-      println("im here yo vijay sucks 1 " + i + " user conf " + userconfidence[i]);
-    
+    if (camera1[i] || !same1[i]){
+          
       if(cam1.isTrackingSkeleton(userList[i])&&userconfidence[i]>0.6){ //if(idguess[userId-1][idcount]!=0)
       
       
@@ -419,7 +409,7 @@ void setup()
         } 
         
         currentguess = (int)model.test(unidentified[i]);
-                                println("cam1 guess: " + currentguess);
+           //                     println("cam1 guess: " + currentguess);
 
         for(int j=0;j<mean.length-1;j++){                                           //Now perform THRESHOLD COMPARISON to cross-check SVM's euc_dist,but ignore CONFIDENCE which has no threshold
           if(abs(copyunidentified[i][j]-means[currentguess-1][j])>1.5*stds[currentguess-1][j])
@@ -442,7 +432,7 @@ void setup()
         else if(withinthreshold){
           idguess[ii][idguessindex[ii]] = currentguess;
           idguessindex[ii]++;                                                     //Increment idguessindex for id estimation    
-          println(idguessindex[ii]+" "+names[currentguess-1]);
+   //       println(idguessindex[ii]+" "+names[currentguess-1]);
 //          println(copyunidentified[i]);
             // SEND INFO TO SERVER
         }
@@ -460,7 +450,7 @@ void setup()
     
     if ((same2[i] && camera2[i]) || !same2[i]){
       
-            println("im here yo vijay sucks 2 " + i + " user conf " + userconfidence2[i]);
+    //        println("im here yo vijay sucks 2 " + i + " user conf " + userconfidence2[i]);
 
        
       if(cam2.isTrackingSkeleton(userList2[i])&&userconfidence2[i]>0.6){ //if(idguess[userId-1][idcount]!=0)
@@ -470,7 +460,7 @@ void setup()
           unidentified2[i][j] = (unidentified2[i][j]-mean[j])/std[j];       //Normalize by subtracting mean and dividing by standard deviation
         } 
         currentguess = (int)model.test(unidentified2[i]);
-        println("cam2 guess: " + currentguess);
+    //    println("cam2 guess: " + currentguess);
         for(int j=0;j<mean.length-1;j++){                                           //Now perform THRESHOLD COMPARISON to cross-check SVM's euc_dist,but ignore CONFIDENCE which has no threshold
           if(abs(copyunidentified2[i][j]-means[currentguess-1][j])>1.5*stds[currentguess-1][j])withinthreshold=false;
          }
@@ -485,7 +475,7 @@ void setup()
         else if(withinthreshold){
           idguess2[ii][idguessindex2[ii]] = currentguess;
           idguessindex2[ii]++;                                                     //Increment idguessindex2 for id estimation    
-          println(idguessindex2[ii]+" "+names[currentguess-1]);
+   //       println(idguessindex2[ii]+" "+names[currentguess-1]);
 //          println(copyunidentified[i]);
             // SEND INFO TO SERVER
 
@@ -631,3 +621,4 @@ else{
 void onVisibleUser(SimpleOpenNI curContext,int userId){
   //println("onVisibleUser - userId: " + userId);
 }
+ 
