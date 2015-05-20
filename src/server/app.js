@@ -11,8 +11,9 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var routes = require('./routes/index');
+var mongoose = require('mongoose');
 require('./db/db');
+var routes = require('./routes/index');
 
 // Create app instance
 var app = express();
@@ -134,3 +135,45 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+
+// Client-server connection through socket.io
+ioServer.on('connection', function(socket){
+  console.log('New client connected with id = ' + socket.id);
+
+  socket.on('disconnect', function(){
+    console.log(socket.id + ' disconnected!!');
+  });
+  
+  // Custom socket event to assign ID to new user
+  socket.on('request new user id', function(data){
+    // Assign model to var
+    var Person = mongoose.model('Person');
+    
+    Person.count({'identified':true}, 
+      function(err, count){
+        if(count == 0){
+          // If no people in database then assign ID = 1
+          var newID = 1;
+        } else {
+          // Else find the max used ID and generate a new ID
+          
+          // Query 'people' collection to find max used ID
+          Person
+            .findOne()
+            .sort('-personID')
+            .exec(function(err, doc){
+              // Generate new ID and name
+              var newID = doc.personID + 1;
+              var newUser = "Guest_" + newID;
+
+              // Broadcast new user details to all clients
+              socket.emit('new user', {userID:newID, user:newUser})
+
+            });
+        }
+      }
+    );
+  }); // End of event
+
+}); // End of ioServer
