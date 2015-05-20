@@ -1,4 +1,4 @@
-import processing.core.PApplet;
+import processing.core.*;
 import SimpleOpenNI.*;
 
 // Class: Camera
@@ -13,6 +13,9 @@ public class Camera extends SimpleOpenNI {
         // Enable depth map generation
         if(!this.enableDepth()){
             System.out.println("No device found!!");
+            System.out.println("Exiting");
+            p.exit();
+            return;
         } 
         else {
             System.out.println("Device connected!!");
