@@ -4,13 +4,13 @@ import processing.core.*;
 import SimpleOpenNI.*;
 
 //  An array of camera objects
-int numCams = 2;
+int numCams = 1;
 Camera[] cams = new Camera[numCams];
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
 ArrayList<cPersonInfo> personInfos = new ArrayList<cPersonInfo>();
 
 public void setup() {
-    size(1280,480, P3D); 
+    size(640,480, P3D); 
     frameRate(15);
     
     // Load the library
@@ -42,14 +42,14 @@ public void draw() {
     
     // Draw depth image
     image(cams[0].depthImage(), 0, 0);
-    image(cams[1].depthImage(), 640, 0);
+    //image(cams[1].depthImage(), 640, 0);
     
     // Find confidence and prioritise camera for feature dimensions extraction
     if (numCams > 1){
         multicam();
     }
     else {
-        singlecam();
+        //singlecam();
     }
 
     debug();
@@ -105,6 +105,19 @@ float[][] joints(SimpleOpenNI context, int[] userList){
 
     return features;
 }
+
+public Boolean findPersonIdent(int camId, int personId){
+    /* Returns true if person exists in global array*/
+    for (cPersonIdent p : personIdents){
+        if (camId == p.camId){
+            if (personId == p.personId){
+                return True;
+            }
+        }
+    }
+
+    return false;
+} 
 
 public void singlecam(){
     /* Fills the personIdent global array if only one camera is connected */
@@ -236,9 +249,17 @@ public void onNewUser(SimpleOpenNI context,int userId){
 }
 
 public void onLostUser(SimpleOpenNI context,int userId) {
-  // Called 10 seconds after losing user
-  
-  context.stopTrackingSkeleton(userId);
+    // Called 10 seconds after losing user
+    println("User Lost:"+userId);
+    context.stopTrackingSkeleton(userId);
+
+    // Delete from global array personIdents
+    for (cPersonIdent p : personIdents){
+        if(p.personId == userId){
+            personIdents.remove(p);
+            break;
+        }
+    }
 }
 
 public void onVisibleUser(SimpleOpenNI curcams,int userId){
