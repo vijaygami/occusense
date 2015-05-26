@@ -17,7 +17,7 @@ class cPersonIdent {
   public cPersonIdent() {
     this.personId = personId;
     this.camId = camId;
-    this.identified = identified;
+    this.identified = false;
     this.featDim = featDim;
     this.guesses = guesses;
   }
