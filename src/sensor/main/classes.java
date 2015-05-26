@@ -8,7 +8,7 @@ class cPersonIdent {
   public int personId;			   // Local person ID
   public int camId;				     // Camera ID with higher confidence
   public boolean identified;   // Set to true when person has been identified
-  public float confidence;		 // Minimum confidence of the  
+  public float confidence;		 // Minimum confidence 
   public float[] featDim = new float[8];	// Feature dimensions with higher confidence
   public int[] guesses = new int[10];			// Result of SVM for last 10 tries	
 

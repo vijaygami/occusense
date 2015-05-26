@@ -1,17 +1,23 @@
- // Imports 
+/**************************** Imports ********************************/
 import java.util.Arrays;
 import processing.core.*;
 import SimpleOpenNI.*;
 
-//  An array of camera objects
+/********************** Global variables *****************************/
+
 int frameCount = 0;
 int numCams = 1;
-Camera[] cams = new Camera[numCams];
+int lostPersonId, lostCam;
+boolean lostUser = false;
+
+Camera[] cams = new Camera[numCams];      // An array of camera objects
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
 ArrayList<cPersonInfo> personInfos = new ArrayList<cPersonInfo>();
 
+/********************************************************************/
+
 public void setup() {
-    size(640,480, P3D); 
+    size(1280,480, P3D); 
     frameRate(20);
     
     // Load the library
@@ -33,7 +39,7 @@ public void setup() {
         // relative to the 0,0 location of the floorplan. Required for a universal
         // coordinate system
         if(usercoordsys.length > 9){
-
+            
         }
     }                     
 }
@@ -41,6 +47,8 @@ public void setup() {
 public void draw() {
     // Update the cams
     SimpleOpenNI.updateAll();
+    
+    println("Frame:" + frameCount);
     
     // Draw depth image
     image(cams[0].depthImage(), 0, 0);
@@ -54,23 +62,25 @@ public void draw() {
         singlecam();
     }
 
+    // If user lost, delete from global arrays here instead of in onLostUser()
+    // This is due to the callback being called in the middle of other functions.
+    if (lostUser) deleteUser();
+
     debug();
-    
+
+    frameCount = frameCount + 1;
+    println("\n");
 }
 
 public void debug(){
-
-    println("Frame:" + frameCount);
+    println("personIdents: " + personIdents.size());
 
     for(cPersonIdent p : personIdents){
-        println("ArraySize: " + personIdents.size());
         println("ID: " + p.personId);
         println("camID: " + p.camId);
         println("FeatDim: " + Arrays.toString(p.featDim));
         println("Identified: " + p.identified + "\n");
     }
-
-    frameCount = frameCount + 1;
 }
 
 float[][] joints(SimpleOpenNI context, int[] userList){ 
@@ -116,6 +126,7 @@ float[][] joints(SimpleOpenNI context, int[] userList){
 
 public int findPersonIdent(int camId, int personId){
     /* Returns the index if person exists in global array. Returns -1 if not found. */
+    
     for (int i=0; i<personIdents.size(); i++){
         if (camId == personIdents.get(i).camId){
             if (personId == personIdents.get(i).personId){
@@ -158,7 +169,6 @@ public void singlecam(){
 
         personIdents.add(personIdent);          // Add obkect to global array
     }
-
 }
 
 public void multicam(){
@@ -180,6 +190,8 @@ public void multicam(){
         // For each camera, get all users' COMs and confidences
         userList = cams[i].getUsers();
         
+        //println("Cam: " + i + "\t Users: " + Arrays.toString(userList));
+        
         if (userList.length > 0){
             // Array to hold all users for one camera
             singleCam = new cSingleCam[userList.length];
@@ -189,7 +201,6 @@ public void multicam(){
             
             for(int j=0; j<userList.length; j++){
                 // For each user get centre of mass and confidence
-
                 personId = userList[j];
                 cams[i].getCoM(userList[j], com0);
                 
@@ -228,7 +239,7 @@ public void multicam(){
                     if(inPerson == -1) inPerson = findPersonIdent(1, c1.personId);
 
                     // Same person so compare confidence and add only one copy to global array
-                    if(c0.featDim[7] <= c1.featDim[7]){
+                    if(c0.featDim[7] < c1.featDim[7]){
                         personIdent.personId = c1.personId;
                         personIdent.camId = 1;
                         personIdent.featDim = c1.featDim;
@@ -256,7 +267,7 @@ public void multicam(){
 
             personIdent.personId = c1.personId;
             personIdent.camId = 1;
-            personIdent.featDim = c1.featDim;            
+            personIdent.featDim = c1.featDim;
 
             inPerson = findPersonIdent(1, c1.personId);     // Check if person already exists in personIdents
 
@@ -269,45 +280,49 @@ public void multicam(){
             personIdents.add(personIdent);                  // Add object to global array
         }
     }
- 
+    
 }   // End of multicam()
 
-
 public void identify(){
-  /* ADD SVM CODE HERE */
+    /* ADD SVM CODE HERE */
 }
 
 public void onNewUser(SimpleOpenNI context,int userId){
-  // Called when new user detected
-  println("New User:" + userId);
-  context.startTrackingSkeleton(userId);
+    // Called when new user detected
+    println("New User:" + userId);
+    context.startTrackingSkeleton(userId);
 }
 
 public void onLostUser(SimpleOpenNI context,int userId) {
     /* Called 10 seconds after losing user */
-    int index;
-    int camId=0;
-
-    println("User Lost:" + userId);
-    context.stopTrackingSkeleton(userId);           // Stop tracking user
 
     // Find camera ID
     for (int i=0; i<cams.length; i++){
         if(context == cams[i]){
-            println("Found cam");
-            camId = i;
+            lostCam = i;
+            break;
         }
     }
 
-    // Delete person from global array personIdents
+    println("Lost User: " + userId + "\tCamera: " + lostCam);
+    context.stopTrackingSkeleton(userId);           // Stop tracking user
+    println("Skeleton tracking stopped for user: " + userId);
+
+
+    lostPersonId = userId;
+    lostUser = true;
+}
+
+public void deleteUser(){
+    /* Delete person from global array personIdents */
+
     for (cPersonIdent p : personIdents){
-        if(p.personId == userId && camId == p.camId){
+        if(p.personId == lostPersonId && p.camId == lostCam){
             personIdents.remove(p);
             break;
         }
     }
-}
 
-public void onVisibleUser(SimpleOpenNI context,int userId){
-
+    lostUser = false;
 }
+  
