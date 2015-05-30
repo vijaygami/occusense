@@ -18,7 +18,10 @@ import SimpleOpenNI.*;
 int frameCount = 0;
 int numCams = 1;
 int lostPersonId, lostCam;
+int savecounter = 0;            // Counts number of frames of data currenly saved
+int savesize = 150;             // Number of frames of data to collect
 boolean lostUser = false;
+boolean enableSave = false;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
 
 CvRTrees forest;    // Forest object
 String forestfile = "/home/rishi/repos/occusense/src/sensor/main/model.xml";
@@ -26,6 +29,7 @@ String forestfile = "/home/rishi/repos/occusense/src/sensor/main/model.xml";
 Camera[] cams = new Camera[numCams];      // An array of camera objects
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
 ArrayList<cPersonMeans> personMeans = new ArrayList<cPersonMeans>(); // Stores persons means along with global ID
+ArrayList<String> textdata = new ArrayList<String>();   // Contains saved users feature data in CSV format. Last element is gpersonID.
 float [] means = new float[12];             // Used for calculating mean of current user being saved. (only features not confidence stored, hence size 12 not 13)
  
 /********************************************************************/
@@ -379,44 +383,92 @@ public void identify(){
     float mseThresh = 550;
     
     for(cPersonIdent p : personIdents){
-        if(p.identified == 0 && p.featDim[12]==1){ 
-            // If person is unidentified, then identify using random forest
-            pIndex = personIdents.indexOf(p);
+        if(p.featDim[12]==1){
 
-            Mat testRow =  new Mat(1, 13, CvType.CV_32FC1);           // Floating point type Mat object
-            
-            for(int col = 0; col < p.featDim.length; col++){          // Copy into Mat structure as required by OpenCV
-                testRow.put(0, col, p.featDim[col]);
-            }
-                    
-            if(p.guessIndex < 10){
-                p.guesses[p.guessIndex] = int(forest.predict(testRow));   // Guess person using random forrest model     
-                p.guessIndex = p.guessIndex + 1;
-                println("guess index: " + p.guessIndex);
-                println("Guesses: " + Arrays.toString(p.guesses));
-            }
-            else {
-                // Find the mode (most frequent) guess
-                p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 10));
+            if(p.identified == 0){ 
+                // If person is unidentified, then identify using random forest
 
-                // Find MSE (mean squared error)
-                mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), Arrays.copyOfRange(p.featDim, 0, 12));
-
-                println("MSE: " + mse);
-
-                if (mse < mseThresh){
-                    // Person succesfully identified
-                    p.identified = 1;
-                    p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
-                    println("User detected: " + p.gpersonId);
+                Mat testRow =  new Mat(1, 13, CvType.CV_32FC1);           // Floating point type Mat object
+                
+                for(int col = 0; col < p.featDim.length; col++){          // Copy into Mat structure as required by OpenCV
+                    testRow.put(0, col, p.featDim[col]);
+                }
+                        
+                if(p.guessIndex < 10){
+                    p.guesses[p.guessIndex] = int(forest.predict(testRow));   // Guess person using random forrest model     
+                    p.guessIndex = p.guessIndex + 1;
+                    println("guess index: " + p.guessIndex);
+                    println("Guesses: " + Arrays.toString(p.guesses));
                 }
                 else {
-                    // New user identified. Request new global person ID from server
+                    // Find the mode (most frequent) guess
+                    p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 10));
 
-                    /* Add code here */
+                    // Find MSE (mean squared error)
+                    mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), Arrays.copyOfRange(p.featDim, 0, 12));
+
+                    println("MSE: " + mse);
+
+                    if (mse < mseThresh){
+                        // Person succesfully identified
+                        p.identified = 1;
+                        p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
+                        println("User detected: " + p.gpersonId);
+                    }
+                    else {
+                        // New user identified. Request new global person ID from server
+                        p.gpersonId = newPersonId();
+
+                        // loads Random Forest data used for training into arrayList 'textdata'
+                        loadData(); 
+                        p.identified = 2;
+                    }
                 }
             }
 
+            if(p.identified == 2 && enableSave){
+                // If person is new then save his features according to global variable, savesize
+                if(savecounter==savesize){  
+                    // If enough data has been collected, store means and global ID in global arraylist
+                    // and save into text file 'mean.txt' for future use.
+                    cPersonMeans temp = new cPersonMeans();
+                    temp.gpersonId = p.gpersonId;           
+                    
+                    for(int i=0; i<12; i++){
+                        // Compute and add the feature means to the object   
+                        temp.featMean[i] = means[i]/savesize; 
+                    }                       
+
+                    personMeans.add(temp);
+                    saveMeans();                     // Write the means to file 
+         
+                    // Write new training data to file
+                    saveStrings("data/data.txt", textdata.toArray(new String[textdata.size()]));
+         
+                    // Training Random Forests
+                    findmodel();
+                    savemodel();
+         
+                    // Reset temporary mean storage and data counter ready for saving the next user
+                    savecounter=0;
+                    
+                    for(int i=0; i<12; i++){
+                        means[i] = 0;
+                    }
+                     
+                    p.identified = 1;                // Now user is saved and identified.
+                     
+                    uploadUser();                   // Upload new person's features to server to broadcast to other nodes
+                }
+         
+                else{                               //else collect more data and add to ArrayList 'textdata'
+                    addData(p.gpersonId, p.featDim); 
+                    savecounter++;                  //counter for number of frames of data saved
+                    for(int i=0;i<12;i++){ means[i] += p.featDim[i]; }       // Accumulate data to calculate the mean once 'savesize' number of frames are saved
+                }                
+            }
+
+            pIndex = personIdents.indexOf(p);
             personIdents.set(pIndex, p);     // Replace personIdent record with changed values
         }
     }
@@ -462,3 +514,12 @@ public void deleteUser(){
     lostUser = false;
 }
   
+
+public int newPersonId(){
+    // Add code to request new id from server here
+    return 0;
+}
+
+public void uploadUser(){
+    
+}

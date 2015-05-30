@@ -1,11 +1,37 @@
 import SimpleOpenNI.*;
 import processing.core.*;
 
+// Class: Camera
+// Super: SimpleOpenNI
+// Provides constructor to instantiate SimpleOpenNI and other methods and callbacks
+class Camera extends SimpleOpenNI {
+
+  // Class constructor
+  Camera(PApplet p, int devIndex) {
+    super(devIndex, p, SimpleOpenNI.RUN_MODE_MULTI_THREADED);
+
+    // Enable depth map generation
+    if (!this.enableDepth()) {
+      System.out.println("No device found!!");
+      System.out.println("Exiting");
+      p.exit();
+      return;
+    } else {
+      System.out.println("Device connected!!");
+
+      // Enable skeleton generation
+      this.enableUser();
+      this.setMirror(false);
+    }
+  }
+}
+
+
 class cPersonIdent {
   /* Contains people from all cameras depending on
    		confidence levels */
 
-  public int gpersonId;     // Global person ID
+  public int gpersonId;        //  Global person ID
   public int personId;			   // Local person ID
   public int camId;				     // Camera ID with higher confidence
   public int identified;       // Set to true when person has been identified

@@ -84,6 +84,32 @@ void loadMeans(){
   }
 }
 
+void loadData(){  
+ /* Loads feature length data from data.txt to ArrayList 'textdata'. CSV format with last value as global user ID */
+  textdata.clear();     // Clear global variable first
+  Collections.addAll(textdata, loadStrings("data/data.txt"));
+}
+
+void addData(int gpersonId, float[] featDim){
+ /* Adds data to 'textdata' ArrayList in CSV format. Last value is global user ID. */
+  
+  textdata.add( featDim[0] + ","
+                + featDim[1] + ","
+                + featDim[2] + ","
+                + featDim[3] + ","
+                + featDim[4] + ","
+                + featDim[5] + ","
+                + featDim[6] + ","
+                + featDim[7] + ","
+                + featDim[8] + ","
+                + featDim[9] + ","
+                + featDim[10] + ","
+                + featDim[11] + ","
+                + featDim[12] + ","
+                + gpersonId
+                );
+}
+
 
 int mode(int[] array) {
     /* Return mode of a list of numbers */
