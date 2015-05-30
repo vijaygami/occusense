@@ -1,4 +1,14 @@
 /**************************** Imports ********************************/
+import gab.opencv.*;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+import org.opencv.core.TermCriteria;
+import org.opencv.ml.CvRTParams;
+import org.opencv.ml.CvRTrees;
+
+import java.util.Collections; 
 import java.util.Arrays;
 import processing.core.*;
 import SimpleOpenNI.*;
@@ -10,15 +20,19 @@ int numCams = 1;
 int lostPersonId, lostCam;
 boolean lostUser = false;
 
+CvRTrees forest;    // Forest object
+String forestfile = "/home/rishi/repos/occusense/src/sensor/main/model.xml";
+
 Camera[] cams = new Camera[numCams];      // An array of camera objects
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
-ArrayList<cPersonInfo> personInfos = new ArrayList<cPersonInfo>();
-
+ArrayList<cPersonMeans> personMeans = new ArrayList<cPersonMeans>(); // Stores persons means along with global ID
+float [] means = new float[12];             // Used for calculating mean of current user being saved. (only features not confidence stored, hence size 12 not 13)
+ 
 /********************************************************************/
 
 public void setup() {
     size(1280,480, P3D); 
-    frameRate(20);
+    frameRate(25);
     
     // Load the library
     SimpleOpenNI.start();
@@ -41,7 +55,15 @@ public void setup() {
         if(usercoordsys.length > 9){
             
         }
-    }                     
+    }    
+
+    // Load data from files into arrays
+    loadMeans();    
+
+    // Create new tree object and load random forest model
+    OpenCV opencv = new OpenCV(this, "test.jpg");
+    forest = new CvRTrees();
+    forest.load(forestfile);               
 }
 
 public void draw() {
@@ -61,7 +83,10 @@ public void draw() {
     else {
         singlecam();
     }
-
+    
+    // Identify unidentified people
+    identify();
+    
     // If user lost, delete from global arrays here instead of in onLostUser()
     // This is due to the callback being called in the middle of other functions.
     if (lostUser) deleteUser();
@@ -73,6 +98,7 @@ public void draw() {
 }
 
 public void debug(){
+    
     println("personIdents: " + personIdents.size());
 
     for(cPersonIdent p : personIdents){
@@ -81,9 +107,10 @@ public void debug(){
         println("FeatDim: " + Arrays.toString(p.featDim));
         println("Identified: " + p.identified + "\n");
     }
+    
 }
 
-float[][] joints(SimpleOpenNI context, int[] userList){ 
+float[][] joints(SimpleOpenNI context, int[] userList, PVector[][] pos){ 
     /* Returns the feature dimensions for each user in the provided context */
 
     PVector head = new PVector();
@@ -91,12 +118,19 @@ float[][] joints(SimpleOpenNI context, int[] userList){
     PVector leftshoulder = new PVector();
     PVector rightshoulder = new PVector();
     PVector lefthip = new PVector();
+    PVector righthip = new PVector();
     PVector leftknee = new PVector();
+    PVector rightknee = new PVector();
     PVector torso = new PVector();
     PVector rightelbow = new PVector();
+    PVector leftelbow = new PVector();
     PVector righthand = new PVector();
-    float[] confidence = new float[9];
-    float[][] features = new float[userList.length][8];
+    PVector lefthand = new PVector();
+    PVector leftfoot = new PVector();
+    PVector rightfoot = new PVector();
+
+    float[] confidence = new float[15];
+    float[][] features = new float[userList.length][13];        // Last element is minimum confidence
     
     for(int i=0;i<userList.length;i++){
         if(context.isTrackingSkeleton(userList[i])){
@@ -105,19 +139,47 @@ float[][] joints(SimpleOpenNI context, int[] userList){
             confidence[2] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_SHOULDER,leftshoulder);
             confidence[3] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_SHOULDER,rightshoulder);
             confidence[4] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_HIP,lefthip);
-            confidence[5] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_KNEE,leftknee);
-            confidence[6] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_TORSO,torso);
-            confidence[7] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_ELBOW,rightelbow);
-            confidence[8] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_HAND,righthand);
+            confidence[5] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_HIP,righthip);
+            confidence[6] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_KNEE,leftknee);
+            confidence[7] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_KNEE,rightknee);
+            confidence[8] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_TORSO,torso);
+            confidence[9] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_ELBOW,leftelbow);
+            confidence[10] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_ELBOW,rightelbow);
+            confidence[11] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_HAND,righthand);
+            confidence[12] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_HAND,lefthand);
+            confidence[13] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_FOOT,leftfoot);
+            confidence[14] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_RIGHT_FOOT,rightfoot);
             
-            features[i][0] = neck.dist(head);                          
-            features[i][1] = leftshoulder.dist(rightshoulder); 
-            features[i][2] = torso.dist(neck); 
-            features[i][3] = neck.dist(head)+leftshoulder.dist(lefthip)+lefthip.dist(leftknee);
-            features[i][4] = torso.dist(lefthip)+torso.dist(leftshoulder);   
-            features[i][5] = rightshoulder.dist(rightelbow);
-            features[i][6] = rightelbow.dist(righthand); 
-            features[i][7] = min(confidence);       
+            features[i][0] = (neck.dist(head));
+            features[i][1] = (leftshoulder.dist(rightshoulder)); 
+            features[i][2] = (torso.dist(neck)); 
+            features[i][3] = (torso.dist(lefthip)+torso.dist(leftshoulder));       
+            features[i][4] = (torso.dist(righthip)+torso.dist(rightshoulder));
+            features[i][5] = (rightshoulder.dist(rightelbow));
+            features[i][6] = (leftshoulder.dist(leftelbow));
+            features[i][7] = (rightelbow.dist(righthand)); 
+            features[i][8] = (leftelbow.dist(lefthand)); 
+            features[i][9] = (righthip.dist(lefthip));
+            features[i][10] = (righthip.dist(rightknee));
+            features[i][11] = (lefthip.dist(leftknee));
+            features[i][12] = min(confidence);
+
+            pos[i][0] = head;
+            pos[i][1] = neck;
+            pos[i][2] = leftshoulder;
+            pos[i][3] = rightshoulder;
+            pos[i][4] = lefthip;
+            pos[i][5] = righthip;
+            pos[i][6] = leftknee;
+            pos[i][7] = rightknee;
+            pos[i][8] = rightelbow;
+            pos[i][9] = leftelbow;
+            pos[i][10] = righthand;
+            pos[i][11] = lefthand;
+            pos[i][12] = torso;
+            pos[i][13] = leftfoot;
+            pos[i][14] = rightfoot;
+
         }
     }
 
@@ -144,30 +206,40 @@ public void singlecam(){
     int inPerson;
     int[] userList;
     float[][] features;
+    PVector[][] jointPos;
     PVector com = new PVector();                // Centre of mass
     cPersonIdent personIdent;
 
     userList = cams[0].getUsers();
+    
+    jointPos = new PVector[userList.length][15];
 
     // Get feature dimensions for all users
-    features = joints(cams[0], userList);
+    features = joints(cams[0], userList, jointPos);
 
     for (int i=0; i<userList.length; i++){
+        cams[0].getCoM(userList[i], com);
+
         personIdent = new cPersonIdent();
 
         personIdent.personId = userList[i];
         personIdent.camId = 0;
+        personIdent.com = com;
         personIdent.featDim = features[i];
+        personIdent.jointPos = jointPos[i];
 
         inPerson = findPersonIdent(0, userList[i]);     // Check if person already exists in personIdents
 
         if (inPerson != -1){
             // If person already exists in global array then replace him/her
+            personIdent.gpersonId = personIdents.get(inPerson).gpersonId;
+            personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
+            personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
             personIdents.remove(inPerson);
         }
 
-        personIdents.add(personIdent);          // Add obkect to global array
+        personIdents.add(personIdent);          // Add object to global array
     }
 }
 
@@ -180,6 +252,7 @@ public void multicam(){
     float eucDist;
     float minConf;                                              // Minimum confidence
     float[][] features;
+    PVector[][] jointPos;
     PVector com0 = new PVector();                               // Centre of mass 1
     PVector com1 = new PVector();                               // Centre of mass 2
     cSingleCam[] singleCam;
@@ -190,21 +263,23 @@ public void multicam(){
         // For each camera, get all users' COMs and confidences
         userList = cams[i].getUsers();
         
-        //println("Cam: " + i + "\t Users: " + Arrays.toString(userList));
+        println("Cam: " + i + "\t Users: " + Arrays.toString(userList));
         
         if (userList.length > 0){
             // Array to hold all users for one camera
             singleCam = new cSingleCam[userList.length];
              
+            jointPos = new PVector[userList.length][15]; 
+            
             // Get feature dimensions for all users
-            features = joints(cams[i], userList);
+            features = joints(cams[i], userList, jointPos);
             
             for(int j=0; j<userList.length; j++){
                 // For each user get centre of mass and confidence
                 personId = userList[j];
                 cams[i].getCoM(userList[j], com0);
                 
-                singleCam[j] = new cSingleCam(personId, com0, features[j]);
+                singleCam[j] = new cSingleCam(personId, com0, features[j], jointPos[j]);
             }
         }
         else {
@@ -224,7 +299,9 @@ public void multicam(){
         personIdent = new cPersonIdent();         // Create new object, add to global array later
         personIdent.personId = c0.personId;
         personIdent.camId = 0;
+        personIdent.com = c0.com;
         personIdent.featDim = c0.featDim;
+        personIdent.jointPos = c0.jointPos;
 
         com0 = c0.com;      // Get COM of person
 
@@ -242,7 +319,9 @@ public void multicam(){
                     if(c0.featDim[7] < c1.featDim[7]){
                         personIdent.personId = c1.personId;
                         personIdent.camId = 1;
+                        personIdent.com = c1.com;
                         personIdent.featDim = c1.featDim;
+                        personIdent.jointPos = c1.jointPos;
                     }
 
                     c1.personId = -1;       // Set personId=-1 to skip person
@@ -253,7 +332,10 @@ public void multicam(){
 
         if (inPerson != -1){
             // If person already exists in global array then replace him/her
+            personIdent.gpersonId = personIdents.get(inPerson).gpersonId;
+            personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
+            personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
             personIdents.remove(inPerson);
         }
 
@@ -267,13 +349,18 @@ public void multicam(){
 
             personIdent.personId = c1.personId;
             personIdent.camId = 1;
+            personIdent.com = c1.com;
             personIdent.featDim = c1.featDim;
+            personIdent.jointPos = c1.jointPos;
 
             inPerson = findPersonIdent(1, c1.personId);     // Check if person already exists in personIdents
 
             if (inPerson != -1){
                 // If person already exists in global array then replace him/her
+                personIdent.gpersonId = personIdents.get(inPerson).gpersonId;
+                personIdent.guesses = personIdents.get(inPerson).guesses;
                 personIdent.identified = personIdents.get(inPerson).identified;
+                personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
                 personIdents.remove(inPerson);
             }
 
@@ -284,7 +371,56 @@ public void multicam(){
 }   // End of multicam()
 
 public void identify(){
-    /* ADD SVM CODE HERE */
+    /* Identifies unidentified people using random forest. Guesses a person 10 times and confirms 
+        the identity using mode */
+
+    int pIndex;
+    float mse;
+    float mseThresh = 550;
+    
+    for(cPersonIdent p : personIdents){
+        if(p.identified == 0 && p.featDim[12]==1){ 
+            // If person is unidentified, then identify using random forest
+            pIndex = personIdents.indexOf(p);
+
+            Mat testRow =  new Mat(1, 13, CvType.CV_32FC1);           // Floating point type Mat object
+            
+            for(int col = 0; col < p.featDim.length; col++){          // Copy into Mat structure as required by OpenCV
+                testRow.put(0, col, p.featDim[col]);
+            }
+                    
+            if(p.guessIndex < 10){
+                p.guesses[p.guessIndex] = int(forest.predict(testRow));   // Guess person using random forrest model     
+                p.guessIndex = p.guessIndex + 1;
+                println("guess index: " + p.guessIndex);
+                println("Guesses: " + Arrays.toString(p.guesses));
+            }
+            else {
+                // Find the mode (most frequent) guess
+                p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 10));
+
+                // Find MSE (mean squared error)
+                mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), Arrays.copyOfRange(p.featDim, 0, 12));
+
+                println("MSE: " + mse);
+
+                if (mse < mseThresh){
+                    // Person succesfully identified
+                    p.identified = 1;
+                    p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
+                    println("User detected: " + p.gpersonId);
+                }
+                else {
+                    // New user identified. Request new global person ID from server
+
+                    /* Add code here */
+                }
+            }
+
+            personIdents.set(pIndex, p);     // Replace personIdent record with changed values
+        }
+    }
+
 }
 
 public void onNewUser(SimpleOpenNI context,int userId){
