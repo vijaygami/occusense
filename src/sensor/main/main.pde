@@ -320,7 +320,7 @@ public void multicam(){
                     if(inPerson == -1) inPerson = findPersonIdent(1, c1.personId);
 
                     // Same person so compare confidence and add only one copy to global array
-                    if(c0.featDim[7] < c1.featDim[7]){
+                    if(c0.featDim[12] < c1.featDim[12]){
                         personIdent.personId = c1.personId;
                         personIdent.camId = 1;
                         personIdent.com = c1.com;

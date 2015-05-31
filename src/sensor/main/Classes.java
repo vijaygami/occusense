@@ -61,7 +61,7 @@ class cSingleCam {
 
   public int personId;			// Local person ID
   public PVector com;			  // Location of centre of mass 
-  public float[] featDim = new float[8];  // Feature dimensions with higher confidence
+  public float[] featDim = new float[13];  // Feature dimensions with higher confidence
   public PVector[] jointPos = new PVector[15];    // Joint positions of person
 
   // Constructor
