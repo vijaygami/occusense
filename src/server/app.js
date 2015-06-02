@@ -11,8 +11,10 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var routes = require('./routes/index');
+var mongoose = require('mongoose');
 require('./db/db');
+var personData = require('./db/person');
+var OplogWatcher = require('mongo-oplog-watcher');
 
 // Create app instance
 var app = express();
@@ -44,7 +46,10 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Routing
-app.use('/', routes);
+app.get('/', function(req, res){
+	res.sendFile('/home/rishi/repos/occusense/src/server/views/index.html');
+});
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -60,11 +65,11 @@ app.use(function(req, res, next) {
 // will print stacktrace
 if (app.get('env') === 'development') {
   app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
+	res.status(err.status || 500);
+	res.render('error', {
+	  message: err.message,
+	  error: err
+	});
   });
 }
 
@@ -73,8 +78,8 @@ if (app.get('env') === 'development') {
 app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error', {
-    message: err.message,
-    error: {}
+	message: err.message,
+	error: {}
   });
 });
 
@@ -85,13 +90,13 @@ function normalizePort(val) {
   var port = parseInt(val, 10);
 
   if (isNaN(port)) {
-    // named pipe
-    return val;
+	// named pipe
+	return val;
   }
 
   if (port >= 0) {
-    // port number
-    return port;
+	// port number
+	return port;
   }
 
   return false;
@@ -102,25 +107,25 @@ function normalizePort(val) {
  */
 function onError(error) {
   if (error.syscall !== 'listen') {
-    throw error;
+	throw error;
   }
 
   var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+	? 'Pipe ' + port
+	: 'Port ' + port;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
+	case 'EACCES':
+	  console.error(bind + ' requires elevated privileges');
+	  process.exit(1);
+	  break;
+	case 'EADDRINUSE':
+	  console.error(bind + ' is already in use');
+	  process.exit(1);
+	  break;
+	default:
+	  throw error;
   }
 }
 
@@ -130,7 +135,98 @@ function onError(error) {
 function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
+	? 'pipe ' + addr
+	: 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+
+// Client-server connection through socket.io
+ioServer.on('connection', function(socket){
+	console.log('New client connected with id = ' + socket.id);
+
+	socket.on('disconnect', function(){
+	console.log(socket.id + ' disconnected!!');
+	});
+
+	// test socket event
+	socket.on('getCount', function(){
+		console.log("Received count request from client: " + socket.id);
+		personData.personCount(function(count){
+			socket.emit('personCount', {pCount:count});
+		});
+	});
+  
+	// Custom socket event to assign ID to new user
+	socket.on('request new user id', function(data){
+	// Assign model to var
+	var Person = mongoose.model('Person');
+
+	Person.count({'identified':true}, 
+	  function(err, count){
+		if(count == 0){
+		  // If no people in database then assign ID = 1
+		  var newID = 1;
+		} else {
+		  // Else find the max used ID and generate a new ID
+		  
+		  // Query 'people' collection to find max used ID
+		  Person
+			.findOne()
+			.sort('-personID')
+			.exec(function(err, doc){
+			  // Generate new ID and name
+			  var newID = doc.personID + 1;
+			  var newUser = "Guest_" + newID;
+
+			  // Broadcast new user details to all clients
+			  socket.emit('new user', {userID:newID, user:newUser})
+
+			});
+		}
+	  }
+	);
+	}); // End of event
+
+}); // End of ioServer
+
+
+// Watch people collection in depthdb for changes
+var oplog = new OplogWatcher({
+  host:"127.0.0.1:27017" ,ns: "depthdb.people"
+});
+
+
+// Web socket namespace /webApp to handle connections to web app clients
+var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
+	console.log('Web app client connected: ' + socket.id);
+
+	// On connection, send all people who have been identified
+	var Person = mongoose.model('Person');
+	personData.personCount(function(count){
+		socket.emit('personCount', {pCount:count});
+	}); // Change this
+
+
+	/* Events called on specific socket */
+	/*----------------------------------*/
+
+	/* Events called on the whole namespace */
+	/*--------------------------------------*/
+	// Event triggered when document updated
+	oplog.on('update', function(doc) {
+		console.log("Person document updated!");
+		console.log(doc);
+		ioWebApp.emit('update:person',doc);
+	});
+
+	// Event triggered when document inserted
+	oplog.on('insert', function(doc) {
+		console.log("New person document inserted!");
+		console.log(doc);
+		ioWebApp.emit('insert:person',doc);
+	});
+
+});
+
+ 
