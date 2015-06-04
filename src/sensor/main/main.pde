@@ -162,27 +162,28 @@ public void debug(){
 float[][] joints(SimpleOpenNI context, int[] userList, PVector[][] pos){ 
     /* Returns the feature dimensions for each user in the provided context */
 
-    PVector head = new PVector();
-    PVector neck = new PVector();
-    PVector leftshoulder = new PVector();
-    PVector rightshoulder = new PVector();
-    PVector lefthip = new PVector();
-    PVector righthip = new PVector();
-    PVector leftknee = new PVector();
-    PVector rightknee = new PVector();
-    PVector torso = new PVector();
-    PVector rightelbow = new PVector();
-    PVector leftelbow = new PVector();
-    PVector righthand = new PVector();
-    PVector lefthand = new PVector();
-    PVector leftfoot = new PVector();
-    PVector rightfoot = new PVector();
-
     float[] confidence = new float[15];
     float[][] features = new float[userList.length][13];        // Last element is minimum confidence
     
     for(int i=0;i<userList.length;i++){
         if(context.isTrackingSkeleton(userList[i])){
+          
+            PVector head = new PVector();      // needs to be inside for loop as we need to allocate new memory each time
+            PVector neck = new PVector();
+            PVector leftshoulder = new PVector();
+            PVector rightshoulder = new PVector();
+            PVector lefthip = new PVector();
+            PVector righthip = new PVector();
+            PVector leftknee = new PVector();
+            PVector rightknee = new PVector();
+            PVector torso = new PVector();
+            PVector rightelbow = new PVector();
+            PVector leftelbow = new PVector();
+            PVector righthand = new PVector();
+            PVector lefthand = new PVector();
+            PVector leftfoot = new PVector();
+            PVector rightfoot = new PVector();
+    
             confidence[0] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_HEAD,head);
             confidence[1] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_NECK,neck);
             confidence[2] = context.getJointPositionSkeleton(userList[i],SimpleOpenNI.SKEL_LEFT_SHOULDER,leftshoulder);
@@ -256,7 +257,6 @@ public void singlecam(){
     int[] userList;
     float[][] features;
     PVector[][] jointPos;
-    PVector com = new PVector();                // Centre of mass
     cPersonIdent personIdent;
 
     userList = cams[0].getUsers();
@@ -267,6 +267,8 @@ public void singlecam(){
     features = joints(cams[0], userList, jointPos);
 
     for (int i=0; i<userList.length; i++){
+        PVector com = new PVector();                // Centre of mass    // inside for loop to avoid overwritting old values
+
         cams[0].getCoM(userList[i], com);
 
         personIdent = new cPersonIdent();
