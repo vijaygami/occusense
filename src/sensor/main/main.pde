@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 1;
+int numCams = 2;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -221,7 +221,7 @@ public void draw() {
     
     // Draw depth image
     image(cams[0].depthImage(), 0, 0);
-    //image(cams[1].depthImage(), 640, 0);
+    image(cams[1].depthImage(), 640, 0);
     
     // Find confidence and prioritise camera for feature dimensions extraction
     if (numCams > 1){
@@ -246,9 +246,9 @@ public void draw() {
     // This is due to the callback being called in the middle of other functions.
     if (lostUser) deleteUser();
 
-    //debug();
+    debug();
 	
-	// If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
+    // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){		
       newUserRecieved(recieved);	// Process the received JSONArray, and update Random Forest Model
       println("finished processing received data");
@@ -268,6 +268,8 @@ public void debug(){
         println("camID: " + p.camId);
         println("FeatDim: " + Arrays.toString(p.featDim));
         println("Identified: " + p.identified + "\n");
+		println("joints: " + p.jointPos[0] + "\n");
+		println("com: " + p.com + "\n");
     }
 	
 }
@@ -431,6 +433,7 @@ public void multicam(){
     PVector[][] jointPos;
     PVector com0 = new PVector();                               // Centre of mass 1
     PVector com1 = new PVector();                               // Centre of mass 2
+	
     cSingleCam[] singleCam;
     cSingleCam[][] singleCams = new cSingleCam[numCams][];      // Array to hold users in all camera
     cPersonIdent personIdent;
@@ -439,7 +442,7 @@ public void multicam(){
         // For each camera, get all users' COMs and confidences
         userList = cams[i].getUsers();
         
-        println("Cam: " + i + "\t Users: " + Arrays.toString(userList));
+        //println("Cam: " + i + "\t Users: " + Arrays.toString(userList));
         
         if (userList.length > 0){
             // Array to hold all users for one camera
@@ -452,9 +455,9 @@ public void multicam(){
             
             for(int j=0; j<userList.length; j++){
                 // For each user get centre of mass and confidence
+				com0 = new PVector();                               // Centre of mass 1
                 personId = userList[j];
                 cams[i].getCoM(userList[j], com0);
-                
                 singleCam[j] = new cSingleCam(personId, com0, features[j], jointPos[j]);
             }
         }
@@ -877,7 +880,6 @@ public void updateTrainedGesture(){
  }
 }
 
-
 public void onNewUser(SimpleOpenNI context,int userId){
     // Called when new user detected
     println("New User:" + userId);
@@ -962,6 +964,35 @@ void newUserRecieved(JSONArray recieved){
   forest.load(forestfile);														// Probably unncecessary to reload since model trained in 'savemodel()'
 }
 
-void keyPressed(){
-  socket.emit("ges_temp"); 
+void sendJoints(){
+	
+	float[][] jointPos = new float[15][3]; 
+	float[] COM = new float[3]; 
+	JSONArray pos = new JSONArray();		// Stores joint positions, COM's and gpersonID for all identified users
+	JSONObject temp = new JSONObject();		// Stores joint positions, COM's and gpersonID for an identified user
+
+ 	for(cPersonIdent p : personIdents){
+		if(p.identified == 1){
+			
+			for(int i=0;i<15;i++){
+				jointPos[i] = (p.jointPos[i]).array();
+			}
+
+			COM = (p.com).array();
+			
+			try{
+				temp.put("id", (int)p.gpersonId);
+				temp.put("COM", COM);
+				temp.put("joint", jointPos);
+			}  catch (JSONException e) {}
+			
+			pos.put(temp);
+		}
+	}
+
+	println(pos);
+	socket.emit("person_COM",pos);
+
+	
 }
+
