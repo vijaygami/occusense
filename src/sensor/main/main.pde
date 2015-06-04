@@ -45,6 +45,7 @@ SocketIO socket;
 int requestedID=0;                          // ID to be returned by the server once requested. 
 JSONArray outgoing = new JSONArray();		// Used to transmit user training data to other nodes
 JSONArray recieved = new JSONArray();
+
 boolean enableSave = true;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
 boolean saving = false;			// Keeps track of whether or not a new user is currently being saved
 boolean dataAvailable = false;	// True when new user data is broadcast from server 
@@ -62,6 +63,14 @@ float comx_last = 0;  // used for speed of person
 float comz_last = 0;  // used for speed of person
 int index; //index of person asked to be trained
 int globalperson = 0;  // global id of person for who gesture recognition is enabled
+int gestureId=0;      // gesture Id to be trained (preceived from server and passed to gesture function)
+int globalId=0;       // global Id of person needed training
+boolean updateGesture = false;   // save new gesture received from the server
+
+// JSON stuff for server
+JSONObject gestureObjectIncoming = new JSONObject();  
+JSONArray gestureArray = new JSONArray();
+JSONObject gestureObjectOutgoing = new JSONObject();
 
 int numberOfPoses = 10;  // max ten poses
 
@@ -112,6 +121,19 @@ public void setup() {
 			recieved = (JSONArray)args[0];
 			dataAvailable=true;			
 		  }
+
+                  if(event.equals("ges_train")){
+                       gestureId = (Integer)args[0];
+                       globalId= (Integer)args[1];
+                      train_gesture=true;      
+                    }
+                    
+                  if(event.equals("ges_res")){
+                       gestureObjectIncoming = new JSONObject();
+                       gestureObjectIncoming = (JSONObject)args[0];
+                       gestureId = (Integer)args[1];
+                       updateGesture = true;
+                    }
 		  
 	}});
 	}catch(MalformedURLException e1){e1.printStackTrace();}
@@ -216,7 +238,9 @@ public void draw() {
       // set train_gesture as true
   
   // Train/Track Gestures
-    gesture(1,4);  // takes globalID & gestureID
+    gesture();  // takes globalID & gestureID
+    
+    updateTrainedGesture();  // saves gesture file sent from server
     
     // If user lost, delete from global arrays here instead of in onLostUser()
     // This is due to the callback being called in the middle of other functions.
@@ -646,10 +670,10 @@ public void identify(){
 
 }
 
-public void gesture(int globalID, int gestureID){
+public void gesture(){
  
   if(train_gesture){
-      index = findLocalIdent(globalID);  // find index of where the global person is held in the global array
+      index = findLocalIdent(globalId);  // find index of where the global person is held in the global array
       
     if(index == 0 ){      // for debugging removee
     if(personIdents.get(index).identified == 1){  // for debugging removee
@@ -669,7 +693,7 @@ public void gesture(int globalID, int gestureID){
     
     // save pose after 6s
     if (millis() - start_gesture_train > 6000){
-      saveGesture(gestureID);
+      saveGesture(gestureId);
       train_gesture = false;
       train_once = true;
       println("saved pose");
@@ -697,7 +721,7 @@ public void gesture(int globalID, int gestureID){
       // hard coded gestures go here
       
    if(p.com.y<500){
-    //println("fall detection " + p.gpersonId);
+    //println("fall detection " + p.gpersonId); 
     }
 //     else if(p.com.y<800){
 //       // println("s'h'itting " + p.gpersonId);
@@ -811,9 +835,10 @@ public void evaluateCost(){
        // if gesture match found
             if ( ( cost[p][gestindex] < 0.3 ) && ( costLast[p][gestindex] >= 0.3 ) )
             {
+                
+                 socket.emit("ges_perf",gestindex, globalperson);//found gesture and output to server
                 println("found gesture #" + gestindex + " user #" + globalperson);  // found gesture
-
-        start_gesture_recog = millis();  // reset gesture timeout 
+                start_gesture_recog = millis();  // reset gesture timeout 
 
             }   
   
@@ -835,6 +860,21 @@ public void saveGesture(int gestureID){
       empty[gestureID] = false;
   }
 
+}
+
+public void updateTrainedGesture(){
+ if ( updateGesture && !voluntary_start){  // if we recieve new gesture data and we are not detecting gestures then
+   String temp = "im here as a placeholder";
+   try {     
+     temp = (gestureObjectIncoming.get("gesturedata")).toString();  // convert jsonobject to string
+   }
+ catch (JSONException e) {}
+ 
+ String[] poseData = split(temp.substring(1,temp.length()-1), ',');  // convert to string array
+ updateGesture = false;  // no need to update gesture again
+ saveStrings("data/pose"+gestureId+".data", poseData);  // save pose data
+ println("gesture data updated for gesture id " + gestureId);
+ }
 }
 
 
@@ -922,3 +962,6 @@ void newUserRecieved(JSONArray recieved){
   forest.load(forestfile);														// Probably unncecessary to reload since model trained in 'savemodel()'
 }
 
+void keyPressed(){
+  socket.emit("ges_temp"); 
+}

@@ -87,6 +87,23 @@ void saveData(int moveID) {
         data.add(move[moveID][j].jointRightHandRelative.y);
         data.add(move[moveID][j].jointRightHandRelative.z);
     }
+    
+    // Make JSONObject of gesture data
+    gestureObjectOutgoing = new JSONObject();
+    gestureArray = new JSONArray();
+    
+    for(int i=0;i<data.datalist.size();i++){
+      try {       
+        //float = 
+        gestureArray.put((data.datalist.get(i)));    // Add all gesture data to a JSONArray
+        gestureObjectOutgoing.put("gesturedata", gestureArray);    // Add it to a JSONObject with key gesturedata
+     }
+     catch (JSONException e) {}
+  }
+ 
+    // send new gesture data to server
+    socket.emit("ges_new", gestureObjectOutgoing, moveID);
+
     String str = Integer.toString(moveID);    
     data.endSave(dataPath("pose" + str + ".data"));
 }
