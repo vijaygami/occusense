@@ -43,7 +43,7 @@
     <cols>2</cols>
     <dt>i</dt>
     <data>
-      0 1</data></cat_map>
+      1 2</data></cat_map>
   <trees>
     <_>
       <best_tree_idx>-1</best_tree_idx>
@@ -51,7 +51,7 @@
         <_>
           <depth>0</depth>
           <sample_count>300</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -66,7 +66,7 @@
         <_>
           <depth>1</depth>
           <sample_count>157</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -77,7 +77,7 @@
         <_>
           <depth>1</depth>
           <sample_count>143</sample_count>
-          <value>1.</value>
+          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -91,7 +91,7 @@
         <_>
           <depth>0</depth>
           <sample_count>300</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -106,7 +106,7 @@
         <_>
           <depth>1</depth>
           <sample_count>155</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -117,7 +117,7 @@
         <_>
           <depth>1</depth>
           <sample_count>145</sample_count>
-          <value>1.</value>
+          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -131,7 +131,7 @@
         <_>
           <depth>0</depth>
           <sample_count>300</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -146,7 +146,7 @@
         <_>
           <depth>1</depth>
           <sample_count>174</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -157,7 +157,7 @@
         <_>
           <depth>1</depth>
           <sample_count>126</sample_count>
-          <value>1.</value>
+          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -171,7 +171,7 @@
         <_>
           <depth>0</depth>
           <sample_count>300</sample_count>
-          <value>1.</value>
+          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -186,7 +186,7 @@
         <_>
           <depth>1</depth>
           <sample_count>158</sample_count>
-          <value>1.</value>
+          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -197,7 +197,7 @@
         <_>
           <depth>1</depth>
           <sample_count>142</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -211,7 +211,7 @@
         <_>
           <depth>0</depth>
           <sample_count>300</sample_count>
-          <value>1.</value>
+          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -226,7 +226,7 @@
         <_>
           <depth>1</depth>
           <sample_count>148</sample_count>
-          <value>0.</value>
+          <value>1.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -237,7 +237,7 @@
         <_>
           <depth>1</depth>
           <sample_count>152</sample_count>
-          <value>1.</value>
+          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>

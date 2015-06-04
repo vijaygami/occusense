@@ -13,6 +13,16 @@ import java.util.Arrays;
 import processing.core.*;
 import SimpleOpenNI.*;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONArray;
+import java.net.MalformedURLException;
+
+import io.socket.IOAcknowledge;
+import io.socket.IOCallback;
+import io.socket.SocketIO;
+import io.socket.SocketIOException;
+
 /********************** Global variables *****************************/
 
 int frameCount = 0;
@@ -21,26 +31,55 @@ int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
 boolean lostUser = false;
-boolean enableSave = false;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
 
 CvRTrees forest;    // Forest object
-String forestfile = "/home/rishi/repos/occusense/src/sensor/main/model.xml";
+String forestfile = "C:/Users/Vijay/Documents/GitHub/occusense/src/sensor/main/model.xml";
 
-Camera[] cams = new Camera[numCams];      // An array of camera objects
+Camera[] cams = new Camera[numCams];      	// An array of camera objects
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
 ArrayList<cPersonMeans> personMeans = new ArrayList<cPersonMeans>(); // Stores persons means along with global ID
 ArrayList<String> textdata = new ArrayList<String>();   // Contains saved users feature data in CSV format. Last element is gpersonID.
 float [] means = new float[12];             // Used for calculating mean of current user being saved. (only features not confidence stored, hence size 12 not 13)
  
+SocketIO socket;
+int requestedID=0;                          // ID to be returned by the server once requested. 
+JSONArray outgoing = new JSONArray();		// Used to transmit user training data to other nodes
+JSONArray recieved = new JSONArray();
+boolean enableSave = true;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
+boolean saving = false;			// Keeps track of whether or not a new user is currently being saved
+boolean dataAvailable = false;	// True when new user data is broadcast from server 
+
 /********************************************************************/
 
 public void setup() {
     size(1280,480, P3D); 
     frameRate(25);
+    	
+    socket = new SocketIO();
+    try{socket.connect("http://172.20.10.8:3000/nodes", new IOCallback(){
+		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
+		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
+		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
+		public void onDisconnect() {println("Connection terminated.");}
+		public void onConnect() {println("Connection established");}
+		public void on(String event, IOAcknowledge ack, Object... args) {
+
+		  if(event.equals("res_new_ID")){
+			requestedID=(Integer)args[0];      // Set the global ID
+		  }
+		  
+		  if(event.equals("res_data")){
+			recieved = (JSONArray)args[0];
+			dataAvailable=true;			
+		  }
+		  
+	}});
+	}catch(MalformedURLException e1){e1.printStackTrace();}
     
-    // Load the library
+	
+	// Load the library
     SimpleOpenNI.start();
-    
+	
     // Initialize and calibtrate all cams
     for (int i = 0; i < cams.length; i++) {
         cams[i] = new Camera(this, i);
@@ -67,14 +106,13 @@ public void setup() {
     // Create new tree object and load random forest model
     OpenCV opencv = new OpenCV(this, "test.jpg");
     forest = new CvRTrees();
-    forest.load(forestfile);               
+    forest.load(forestfile);       
 }
 
 public void draw() {
     // Update the cams
     SimpleOpenNI.updateAll();
-    
-    println("Frame:" + frameCount);
+    //println("Frame:" + frameCount);
     
     // Draw depth image
     image(cams[0].depthImage(), 0, 0);
@@ -95,10 +133,17 @@ public void draw() {
     // This is due to the callback being called in the middle of other functions.
     if (lostUser) deleteUser();
 
-    debug();
+    //debug();
+	
+	// If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
+    if(dataAvailable && !saving){		
+      newUserRecieved(recieved);	// Process the received JSONArray, and update Random Forest Model
+      println("finished processing received data");
+	  dataAvailable=false;
+      recieved = new JSONArray();	// Clear array
+    }
 
     frameCount = frameCount + 1;
-    println("\n");
 }
 
 public void debug(){
@@ -111,7 +156,7 @@ public void debug(){
         println("FeatDim: " + Arrays.toString(p.featDim));
         println("Identified: " + p.identified + "\n");
     }
-    
+	
 }
 
 float[][] joints(SimpleOpenNI context, int[] userList, PVector[][] pos){ 
@@ -380,7 +425,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 550;
+    float mseThresh = 0;
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -414,21 +459,31 @@ public void identify(){
                         p.identified = 1;
                         p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
                         println("User detected: " + p.gpersonId);
+						socket.emit("identified" , p.gpersonId);
+						
                     }
                     else {
                         // New user identified. Request new global person ID from server
-                        p.gpersonId = newPersonId();
-
+                        socket.emit("req_new_ID");
+                        println("requested ID");
+                        while (requestedID == 0){}    	// Wait here while ID arrives (Server returns a non zero ID)
+                        p.gpersonId = (int)requestedID;
+                        println("recieved ID: " + requestedID);
+                        requestedID = 0;	      		// Set to zero so stay in while loop		
+						println("\n");
+						println("saving new user");
                         // loads Random Forest data used for training into arrayList 'textdata'
                         loadData(); 
                         p.identified = 2;
+						saving = true;
+						outgoing = new JSONArray();	// New JSON array. (only way to clear array)						
                     }
                 }
             }
 
             if(p.identified == 2 && enableSave){
                 // If person is new then save his features according to global variable, savesize
-                if(savecounter==savesize){  
+                if(savecounter == savesize){  
                     // If enough data has been collected, store means and global ID in global arraylist
                     // and save into text file 'mean.txt' for future use.
                     cPersonMeans temp = new cPersonMeans();
@@ -456,20 +511,33 @@ public void identify(){
                         means[i] = 0;
                     }
                      
-                    p.identified = 1;                // Now user is saved and identified.
-                     
-                    uploadUser();                   // Upload new person's features to server to broadcast to other nodes
+                    p.identified = 1;               // Now user is saved and identified.
+					saving = false; 
+					println("sent JSON Array");
+                    socket.emit("rec_data", outgoing);
                 }
          
-                else{                               //else collect more data and add to ArrayList 'textdata'
+                else{                               // Else collect more data and add to ArrayList 'textdata'
                     addData(p.gpersonId, p.featDim); 
-                    savecounter++;                  //counter for number of frames of data saved
-                    for(int i=0;i<12;i++){ means[i] += p.featDim[i]; }       // Accumulate data to calculate the mean once 'savesize' number of frames are saved
-                }                
+                    for(int i=0;i<12;i++){ 
+						means[i] += p.featDim[i]; 	// Accumulate data to calculate the mean once 'savesize' number of frames are saved
+					}       
+					
+                    //JSON object filled with new data
+					JSONObject temp = new JSONObject();
+					try {  
+						temp.put("featDim", (float[])p.featDim);
+						temp.put("gpersonId", (Integer)p.gpersonId);
+					} catch (JSONException e) {}
+					
+					outgoing.put(temp);
+					savecounter++;                  // Counter for number of frames of data saved
+					
+				}                
             }
 
             pIndex = personIdents.indexOf(p);
-            personIdents.set(pIndex, p);     // Replace personIdent record with changed values
+            personIdents.set(pIndex, p);     		// Replace personIdent record with changed values
         }
     }
 
@@ -514,12 +582,48 @@ public void deleteUser(){
     lostUser = false;
 }
   
+void newUserRecieved(JSONArray recieved){
+ /* Called when new user training data is received from other nodes. Add this data to data.txt and re-train the Random Forest model. Compute the feature means for this new user and add to means.txt and the ArrayList 'personMeans'  
+ 
+ CANNOT call this function while a user is already being saved else 'textdata' will be cleared and overwritten
+ */
+ 
+  float [] mean = new float[12];	// Used to calculate and write means
+  loadData();  						// Loads Random Forest data used for training into arrayList 'textdata'
 
-public int newPersonId(){
-    // Add code to request new id from server here
-    return 0;
+  
+  // Add row of data to 'textdata' and acumulate features' sums for mean calculation
+  for(int i=0; i<(recieved.length()); i++){
+    try{
+  	addData( (Integer)(recieved.getJSONObject(i).get("gpersonId")) , float(split( ((String)(recieved.getJSONObject(i)).getString("featDim")).substring(1, ( (((String)(recieved.getJSONObject(i)).getString("featDim"))).length()-1)) , ','       )) ); // Adds to textdata
+
+	for(int j=0;j<12;j++){ 			//exclude confidence which is 12th element
+		mean[j] += (float(split( ((String)(recieved.getJSONObject(i)).getString("featDim")).substring(1, ( (((String)(recieved.getJSONObject(i)).getString("featDim"))).length()-1)) , ','       )))[j];	// Accumulate values; used to compute the mean of each feature
+	}
+  }
+  catch (JSONException e) {}
+  }
+  
+  
+  // Write new training data to file
+  saveStrings("data/data.txt", textdata.toArray(new String[textdata.size()]));
+  
+  
+	// Add means to ArrayList 'personMeans' and save to text file
+	cPersonMeans temp = new cPersonMeans();
+     try{
+	  temp.gpersonId = (Integer)(recieved.getJSONObject(0).get("gpersonId"));   	// gpersonId should be same for all indexes in the JSON array        
+	}
+        catch (JSONException e) {}
+	for(int i=0; i<12; i++){													// Compute feature means   
+		temp.featMean[i] = mean[i]/(recieved.length()); 						// recieved.length() should be equal to 'savesize' if 'savesize' is the same for all machines
+	}                       
+	personMeans.add(temp);
+	saveMeans(); 																// Save ArrayList 'personMeans' to means.txt
+  
+  //find, save and re-load model
+  findmodel();
+  savemodel();
+  forest.load(forestfile);														// Probably unncecessary to reload since model trained in 'savemodel()'
 }
 
-public void uploadUser(){
-    
-}

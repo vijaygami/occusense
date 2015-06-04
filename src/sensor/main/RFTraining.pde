@@ -2,9 +2,16 @@ int numCrossValidate = 2;  // Minimum 2, make sure numsamples is divisable by th
 float[] crossvalidacc = new float[numCrossValidate];
 float bestaccuracy, resultaccuracy;
 
-int[] maxdepth = {3, 4, 5, 8, 10, 15, 20, 25};
-int[] minsamplecount = { 4, 5, 6, 7};
-int[] numtrees = {5, 6, 7, 8, 9, 10, 15, 20, 25 ,30, 40, 60, 80, 100};
+//int[] maxdepth = {3, 4, 5, 8, 10, 15, 20, 25};
+//int[] minsamplecount = { 4, 5, 6, 7};
+//int[] numtrees = {5, 6, 7, 8, 9, 10, 15, 20, 25 ,30, 40, 60, 80, 100};
+
+// shorter options temporarily for speed for debugging
+int[] maxdepth = {3, 5, 10, 15, 25};
+int[] minsamplecount = {4, 5};
+int[] numtrees = {10, 20, 40, 60, 80, 100};
+
+
 int maxCategories=10;
 int bestmincount,bestmaxdepth,bestnumtrees;
 //float[] priors = {1,1,1,1,1,1,1,1}; //weights of each feature
@@ -98,7 +105,7 @@ void findmodel(){
 		}	
       }
       crossvalidacc[i] = (float) correctAnswers*100/(trainingData.getRowCount()/numCrossValidate);
-      println("cross valid acc is: " + crossvalidacc[i] + " for i " + i);
+    //  println("cross valid acc is: " + crossvalidacc[i] + " for i " + i);
     }
 	
     //Average accuracies for each cross-validated set at current parameters
