@@ -33,7 +33,7 @@ int savesize = 150;             // Number of frames of data to collect
 boolean lostUser = false;
 
 CvRTrees forest;    // Forest object
-String forestfile = "C:/Users/Vijay/Documents/GitHub/occusense/src/sensor/main/model.xml";
+String forestfile = "E:/Third Year Project/main/model.xml";
 
 Camera[] cams = new Camera[numCams];      	// An array of camera objects
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
@@ -48,6 +48,46 @@ JSONArray recieved = new JSONArray();
 boolean enableSave = true;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
 boolean saving = false;			// Keeps track of whether or not a new user is currently being saved
 boolean dataAvailable = false;	// True when new user data is broadcast from server 
+
+//======================================= gesture global =====================================//
+ 
+int train_index;  // find where global person is in the global array
+boolean train_once = true;  // used to find index of globalid in array once
+boolean train_gesture = false;  // passed from websocket. Used to initiate training of gesture
+float start_gesture_train = 0;  // time when the train gesture function is called
+boolean voluntary_start = false;  // used to start voluntary gestures when start pose is recognised
+float start_gesture_recog = 0;  // start time for gesture recognition
+boolean one = false;  // USED FOR DEBUGGING STARTUP TIME OF ALGORITHM.
+float comx_last = 0;  // used for speed of person
+float comz_last = 0;  // used for speed of person
+int index; //index of person asked to be trained
+int globalperson = 0;  // global id of person for who gesture recognition is enabled
+
+int numberOfPoses = 10;  // max ten poses
+
+boolean NORMALIZE_SIZE = true;  // normalise size of person to standard person
+int framesGestureMax = 30;    // record for 75 frames
+
+boolean normRotation[] = new boolean[numberOfPoses];  // normalise rotation 
+int framesGesture[] = new int[numberOfPoses];  // picks last frames of stored gesture
+
+int framesInputMax = 2*framesGestureMax;  // number of input frames 
+
+int counter = 0;  // counter to fill up buffer
+int counterEvent = 0;
+
+Pose[][] move;  // Relative Array of objects
+
+int steps[] = new int[10];  // number of steps to minimise cost?
+float speed[] = new float[10];  // speed of gesture
+float cost[][] = new float[2][10];  // cost matrix
+float costLast[][] = new float[2][10];  // last cost matrix
+boolean empty[] = new boolean[10];  // check if stored gesture is empty or not
+
+Data data;  // data type to load and save to file
+RingBuffer[] ringbuffer;  // ringbuffer to store gestures in and calculate path cost
+
+//===========================================================================//
 
 /********************************************************************/
 
@@ -107,6 +147,49 @@ public void setup() {
     OpenCV opencv = new OpenCV(this, "test.jpg");
     forest = new CvRTrees();
     forest.load(forestfile);       
+    
+    //======================= FOR GESTURES ===========================
+
+  for (int i = 0; i<numberOfPoses; i++){
+    framesGesture[i] = framesGestureMax;  // framesGestureMax initialised to 30 fps
+    normRotation[i] = true;  // normalise rotation
+  }
+  
+  move = new Pose[10][framesGestureMax];  // store stored gestures in this array
+
+    ringbuffer = new RingBuffer[2];  // initialise ring buffer
+    for (int i = 0; i < 2; i++) {
+        ringbuffer[i] = new RingBuffer();
+    }
+   
+    data = new Data();
+  
+  // create move array of type pose to store 10 gestures in
+    for(int i = 0; i <= 9; i++) {
+        for(int j = 0; j < framesGestureMax; j++){
+      move[i][j] = new Pose();
+    }
+    }
+  
+    // load the stored data
+    for (int i = 0; i <= 9; i++) {
+        String str = Integer.toString(i);          
+        empty[i] = false;
+      
+        File f = new File(dataPath("pose" + str + ".data"));      
+        if (!f.exists()) {
+            println("File " + dataPath("pose" + str + ".data") + " does not exist");
+            for (int p=0; p<2; p++)
+            {
+                cost[0][i] = 10000.0;
+            }
+        } else { 
+            loadData(i);
+        }
+    }
+
+  //===========================================================
+  
 }
 
 public void draw() {
@@ -128,6 +211,12 @@ public void draw() {
     
     // Identify unidentified people
     identify();
+    
+      // if (command from websocket = train gesture) 
+      // set train_gesture as true
+  
+  // Train/Track Gestures
+    gesture(1,4);  // takes globalID & gestureID
     
     // If user lost, delete from global arrays here instead of in onLostUser()
     // This is due to the callback being called in the middle of other functions.
@@ -249,6 +338,18 @@ public int findPersonIdent(int camId, int personId){
 
     return -1;                  //  Not found so return -1
 } 
+
+public int findLocalIdent(int globalID){
+    /* Returns the local id of a person from global id. Returns -1 if not found. */
+    
+    for (int i=0; i<personIdents.size(); i++){
+        if (globalID == personIdents.get(i).gpersonId){
+             return i;       // Return index of object
+        }
+    }
+
+    return -1;                  //  Not found so return -1
+}
 
 public void singlecam(){
     /* Fills the personIdent global array if only one camera is connected */
@@ -427,7 +528,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 0;
+    float mseThresh = 100000000;
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -544,6 +645,198 @@ public void identify(){
     }
 
 }
+
+public void gesture(int globalID, int gestureID){
+ 
+  if(train_gesture){
+      index = findLocalIdent(globalID);  // find index of where the global person is held in the global array
+      
+    if(index == 0 ){      // for debugging removee
+    if(personIdents.get(index).identified == 1){  // for debugging removee
+      
+    // only find index once at the start of when train gesture is called
+    if(train_once){
+      // get id of global id then look up in structure to get cam id and local id once
+      //index = findLocalIdent(globalID);
+      train_once = false;
+      start_gesture_train = millis();  // start timer
+      println("started training");
+    }
+    
+    
+    // fill buffer i.e call evaluate skeleton function
+    evaluateSkeleton(personIdents.get(index).jointPos);
+    
+    // save pose after 6s
+    if (millis() - start_gesture_train > 6000){
+      saveGesture(gestureID);
+      train_gesture = false;
+      train_once = true;
+      println("saved pose");
+    }
+    }
+    }
+  }
+  
+  //track the gesture
+  for(cPersonIdent p : personIdents){ //all people in cameras view
+    if(p.identified == 1){  // only recognise gestures from identified people
+   if (p.jointPos[0] != null){
+      //right elbow    //righthand          //left elbow         //lefthand
+      //println(p.personId + " " + p.com);
+      if((p.jointPos[8].y) < (p.jointPos[10].y - 200) && p.jointPos[9].y <  (p.jointPos[11].y - 200) && !train_gesture && !voluntary_start){//starting pose detected and not training gesture){  
+        globalperson = p.gpersonId;  // store global id of person
+        voluntary_start = true;  // start voluntary gesture detection
+        start_gesture_recog = millis();  // used to timeout gesture recognition
+        index = findLocalIdent(globalperson);  // store index of global person in the global array
+        //index = p.personId - 1;
+        println("start gesture detected " + globalperson);
+        
+   }
+ 
+      // hard coded gestures go here
+      
+   if(p.com.y<500){
+    //println("fall detection " + p.gpersonId);
+    }
+//     else if(p.com.y<800){
+//       // println("s'h'itting " + p.gpersonId);
+//      }
+      // speed detection
+     else{
+        // calculate distance moved from last com of previous frame 
+        float speed_xz = dist(comx_last, comz_last, p.com.x, p.com.z);  
+        comx_last = p.com.x;
+        comz_last = p.com.z;
+          //threshold determined by trial in mm
+        if(speed_xz < 123 && speed_xz > 40){
+            println("walking");
+         }
+          else if(speed_xz > 250){
+            println("running");
+          }
+     }
+     
+      } // for null if loop
+      
+    }
+  }
+  
+  // detect gestures for one person
+  if(voluntary_start){
+    index = findLocalIdent(globalperson);  // update index of global person in global array
+    
+    if(cams[0].isTrackingSkeleton(personIdents.get(index).personId)){    // change to get which cam the person is on could be 0 or 1 for two cameras
+
+      evaluateSkeleton(personIdents.get(index).jointPos);  // call evaluate skeleton functions
+      evaluateCost();  // work out cost functions
+
+    // reset starting pose detected as false after 5s last gesture performed or 5 seconds after no activity
+      if(millis() - start_gesture_recog > 10000){
+        voluntary_start = false;
+        println("timeout");
+      }
+    }
+    else{
+      voluntary_start = false;
+      println("timeout user lost");
+    }
+
+  }
+    
+}
+
+// draw the skeleton with the selected joints
+// pass the whole array for each user containing the 6 joint positions
+public void evaluateSkeleton(PVector jointPos[]){
+    Pose pose = new Pose();
+
+    // calculate relative position
+
+  // left shoulder - neck
+    pose.jointLeftShoulderRelative.x = jointPos[2].x - jointPos[1].x;
+    pose.jointLeftShoulderRelative.y = jointPos[2].y - jointPos[1].y;
+    pose.jointLeftShoulderRelative.z = jointPos[2].z - jointPos[1].z;
+  // left elbow - neck
+    pose.jointLeftElbowRelative.x = jointPos[9].x - jointPos[1].x;
+    pose.jointLeftElbowRelative.y = jointPos[9].y - jointPos[1].y;
+    pose.jointLeftElbowRelative.z = jointPos[9].z - jointPos[1].z;
+  // left hand - neck
+    pose.jointLeftHandRelative.x = jointPos[11].x - jointPos[1].x;
+    pose.jointLeftHandRelative.y = jointPos[11].y - jointPos[1].y;
+    pose.jointLeftHandRelative.z = jointPos[11].z - jointPos[1].z;  
+  // right shoulder - neck
+    pose.jointRightShoulderRelative.x = jointPos[3].x - jointPos[1].x;
+    pose.jointRightShoulderRelative.y = jointPos[3].y - jointPos[1].y;
+    pose.jointRightShoulderRelative.z = jointPos[3].z - jointPos[1].z;
+  // right elbow - neck
+    pose.jointRightElbowRelative.x = jointPos[8].x - jointPos[1].x;
+    pose.jointRightElbowRelative.y = jointPos[8].y - jointPos[1].y;
+    pose.jointRightElbowRelative.z = jointPos[8].z - jointPos[1].z;
+  // right hand - neck
+    pose.jointRightHandRelative.x = jointPos[10].x - jointPos[1].x;
+    pose.jointRightHandRelative.y = jointPos[10].y - jointPos[1].y;
+    pose.jointRightHandRelative.z = jointPos[10].z - jointPos[1].z;
+
+    // add new pose to ringbuffer
+  
+    if (NORMALIZE_SIZE){
+    pose = normalizeSize(pose);
+  }
+    Pose poseNormalized = normalizeRotation(pose);// can add variable person to increase size of detected users
+    ringbuffer[0].fillBuffer( pose );
+    ringbuffer[0].fillBufferNormalized( poseNormalized );    
+
+}
+
+// works out cost of performed gesture and attempts to find a match from existing recorded gestures
+public void evaluateCost(){
+  
+  int p = 0;
+    for (int gestindex = 0; gestindex <= 9; gestindex++)  // limit = number of poses
+    {
+        if (!empty[gestindex])
+        {
+            costLast[p][gestindex] = cost[p][gestindex];
+            cost[p][gestindex] = ringbuffer[p].pathcost(gestindex);
+            cost[p][gestindex] = (log(cost[p][gestindex]-1.0) - 5.5)/2.0;    /// remove and set cost threshold to 450
+           //println(cost[0][gestindex] + " " + gestindex);
+           
+           if( cost[p][gestindex] > 0 && !one){    // debugging time removeee
+            one = true;
+           float time_end = millis();
+            println(time_end-start_gesture_recog);
+           }
+       
+       // if gesture match found
+            if ( ( cost[p][gestindex] < 0.3 ) && ( costLast[p][gestindex] >= 0.3 ) )
+            {
+                println("found gesture #" + gestindex + " user #" + globalperson);  // found gesture
+
+        start_gesture_recog = millis();  // reset gesture timeout 
+
+            }   
+  
+        }
+    }
+  }
+
+//save gestures that have been trained
+public void saveGesture(int gestureID){
+ if ( (gestureID >= 0) && (gestureID <= 9))
+  {
+    
+      println("POSE " + gestureID + " SAVED");
+      ringbuffer[0].copyBuffer(gestureID);
+    
+      String str = Integer.toString(gestureID);
+      saveData(gestureID);
+      loadData(gestureID);
+      empty[gestureID] = false;
+  }
+
+}
+
 
 public void onNewUser(SimpleOpenNI context,int userId){
     // Called when new user detected
