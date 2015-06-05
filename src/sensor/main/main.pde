@@ -66,7 +66,6 @@ int globalperson = 0;  // global id of person for who gesture recognition is ena
 int gestureId = 0;      // gesture Id to be trained (preceived from server and passed to gesture function)
 int globalId = 0;       // global Id of person needed training
 boolean updateGesture = false;   // save new gesture received from the server
-boolean init_costLast = true;  // initialise costlast to infinity when the gesture detection is started once
 
 // JSON stuff for server
 JSONObject gestureObjectIncoming = new JSONObject();  
@@ -758,7 +757,6 @@ public void gesture(){
       if(millis() - start_gesture_recog > 10000){
         voluntary_start = false;
         println("timeout");
-        init_costLast = true;
       }
     }
     else{
@@ -825,13 +823,6 @@ public void evaluateCost(){
             cost[p][gestindex] = ringbuffer[p].pathcost(gestindex);
             cost[p][gestindex] = (log(cost[p][gestindex]-1.0) - 5.5)/2.0;    /// remove and set cost threshold to 450
            //println(cost[0][gestindex] + " " + gestindex);
-           
-             if(init_costLast && cost[p][gestindex]>0){
-                 costLast[0][gestindex] =  1000;    // intialise costlast to infinity so detects gestures as soon as buffer fills up
-                 if(gestindex >= 9){
-                   init_costLast = false;
-                 }
-              }
            
            if( cost[p][gestindex] > 0 && !one){    // debugging time removeee
             one = true;
