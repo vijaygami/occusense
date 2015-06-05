@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 2;
+int numCams = 1;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -63,9 +63,10 @@ float comx_last = 0;  // used for speed of person
 float comz_last = 0;  // used for speed of person
 int index; //index of person asked to be trained
 int globalperson = 0;  // global id of person for who gesture recognition is enabled
-int gestureId=0;      // gesture Id to be trained (preceived from server and passed to gesture function)
-int globalId=0;       // global Id of person needed training
+int gestureId = 0;      // gesture Id to be trained (preceived from server and passed to gesture function)
+int globalId = 0;       // global Id of person needed training
 boolean updateGesture = false;   // save new gesture received from the server
+boolean init_costLast = true;  // initialise costlast to infinity when the gesture detection is started once
 
 // JSON stuff for server
 JSONObject gestureObjectIncoming = new JSONObject();  
@@ -221,7 +222,7 @@ public void draw() {
     
     // Draw depth image
     image(cams[0].depthImage(), 0, 0);
-    image(cams[1].depthImage(), 640, 0);
+   // image(cams[1].depthImage(), 640, 0);
     
     // Find confidence and prioritise camera for feature dimensions extraction
     if (numCams > 1){
@@ -246,7 +247,7 @@ public void draw() {
     // This is due to the callback being called in the middle of other functions.
     if (lostUser) deleteUser();
 
-    debug();
+    //debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){		
@@ -678,31 +679,27 @@ public void gesture(){
   if(train_gesture){
       index = findLocalIdent(globalId);  // find index of where the global person is held in the global array
       
-    if(index == 0 ){      // for debugging removee
-    if(personIdents.get(index).identified == 1){  // for debugging removee
+    if(personIdents.get(index).identified == 1){  
       
-    // only find index once at the start of when train gesture is called
-    if(train_once){
-      // get id of global id then look up in structure to get cam id and local id once
-      //index = findLocalIdent(globalID);
-      train_once = false;
-      start_gesture_train = millis();  // start timer
-      println("started training");
+      // start timer for gesture training
+      if(train_once){
+        train_once = false;
+        start_gesture_train = millis();  // start timer
+        println("started training");
+      }
+     
+      // fill buffer i.e call evaluate skeleton function
+      evaluateSkeleton(personIdents.get(index).jointPos);
+    
+      // save pose after 6s
+      if (millis() - start_gesture_train > 6000){
+        saveGesture(gestureId);
+        train_gesture = false;
+        train_once = true;
+        println("saved pose");
+      }
     }
     
-    
-    // fill buffer i.e call evaluate skeleton function
-    evaluateSkeleton(personIdents.get(index).jointPos);
-    
-    // save pose after 6s
-    if (millis() - start_gesture_train > 6000){
-      saveGesture(gestureId);
-      train_gesture = false;
-      train_once = true;
-      println("saved pose");
-    }
-    }
-    }
   }
   
   //track the gesture
@@ -716,7 +713,6 @@ public void gesture(){
         voluntary_start = true;  // start voluntary gesture detection
         start_gesture_recog = millis();  // used to timeout gesture recognition
         index = findLocalIdent(globalperson);  // store index of global person in the global array
-        //index = p.personId - 1;
         println("start gesture detected " + globalperson);
         
    }
@@ -737,10 +733,10 @@ public void gesture(){
         comz_last = p.com.z;
           //threshold determined by trial in mm
         if(speed_xz < 123 && speed_xz > 40){
-            println("walking");
+            // println("walking");    // socket emit here maybe
          }
           else if(speed_xz > 250){
-            println("running");
+           // println("running");    // socket emit here maybe
           }
      }
      
@@ -753,15 +749,16 @@ public void gesture(){
   if(voluntary_start){
     index = findLocalIdent(globalperson);  // update index of global person in global array
     
-    if(cams[0].isTrackingSkeleton(personIdents.get(index).personId)){    // change to get which cam the person is on could be 0 or 1 for two cameras
+    if(cams[personIdents.get(index).camId].isTrackingSkeleton(personIdents.get(index).personId)){    // if we are tracking the global person
 
       evaluateSkeleton(personIdents.get(index).jointPos);  // call evaluate skeleton functions
       evaluateCost();  // work out cost functions
 
-    // reset starting pose detected as false after 5s last gesture performed or 5 seconds after no activity
+    // reset starting pose detected as false after 10s last gesture performed or 10 seconds after no activity
       if(millis() - start_gesture_recog > 10000){
         voluntary_start = false;
         println("timeout");
+        init_costLast = true;
       }
     }
     else{
@@ -829,6 +826,13 @@ public void evaluateCost(){
             cost[p][gestindex] = (log(cost[p][gestindex]-1.0) - 5.5)/2.0;    /// remove and set cost threshold to 450
            //println(cost[0][gestindex] + " " + gestindex);
            
+             if(init_costLast && cost[p][gestindex]>0){
+                 costLast[0][gestindex] =  1000;    // intialise costlast to infinity so detects gestures as soon as buffer fills up
+                 if(gestindex >= 9){
+                   init_costLast = false;
+                 }
+              }
+           
            if( cost[p][gestindex] > 0 && !one){    // debugging time removeee
             one = true;
            float time_end = millis();
@@ -839,7 +843,7 @@ public void evaluateCost(){
             if ( ( cost[p][gestindex] < 0.3 ) && ( costLast[p][gestindex] >= 0.3 ) )
             {
                 
-                 socket.emit("ges_perf",gestindex, globalperson);//found gesture and output to server
+                 socket.emit("ges_perf",gestindex, globalperson);  //found gesture and output to server
                 println("found gesture #" + gestindex + " user #" + globalperson);  // found gesture
                 start_gesture_recog = millis();  // reset gesture timeout 
 
