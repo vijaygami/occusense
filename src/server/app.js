@@ -15,6 +15,7 @@ var mongoose = require('mongoose');
 require('./db/db');
 var personData = require('./db/person');
 var OplogWatcher = require('mongo-oplog-watcher');
+var routes = require('./routes/index');
 
 // Create app instance
 var app = express();
@@ -46,10 +47,12 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Routing
+
 app.get('/', function(req, res){
-	res.sendFile('/home/rishi/repos/occusense/src/server/views/index.html');
+	res.sendFile('/Users/Rajan/Documents/repos/occusense/src/server/views/index.html');
 });
 
+//app.use('/', routes);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -188,7 +191,7 @@ ioServer.on('connection', function(socket){
 	);
 	}); // End of event
 
-}); // End of ioServer
+}); // End of ioServer */
 
 
 // Watch people collection in depthdb for changes
@@ -205,14 +208,19 @@ var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
 	var Person = mongoose.model('Person');
 	personData.personCount(function(count){
 		socket.emit('personCount', {pCount:count});
-	}); // Change this
+	}); // Change this 
 
 
 	/* Events called on specific socket */
 	/*----------------------------------*/
 
+	socket.on('ges_change',function(data){
+		socket.emit('response', data);
+	});
+
 	/* Events called on the whole namespace */
 	/*--------------------------------------*/
+	
 	// Event triggered when document updated
 	oplog.on('update', function(doc) {
 		console.log("Person document updated!");
