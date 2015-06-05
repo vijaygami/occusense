@@ -1,5 +1,3 @@
-int numCrossValidate = 2;  // Minimum 2, make sure numsamples is divisable by this!!
-float[] crossvalidacc = new float[numCrossValidate];
 float bestaccuracy, resultaccuracy;
 
 int[] maxdepth = {3, 4, 5, 8, 10, 15, 20, 25};
@@ -15,25 +13,25 @@ void findmodel(){
 	Table trainingData = loadTable("data.txt","csv"); 		//last column contains answers
   
 	Mat trainingTraits = new Mat(	// Mat object (as required by OpenCV) containing training data		
-		trainingData.getRowCount()*(numCrossValidate-1)/numCrossValidate,         
+		trainingData.getRowCount()/2,         
 		trainingData.getColumnCount() - 1, 
 		CvType.CV_32FC1             // 32 bit floating point data tpye      
 	);
 
 	Mat trainingAnswers = new Mat(	// Mat object containing training answers
-		trainingData.getRowCount()*(numCrossValidate-1)/numCrossValidate,         
+		trainingData.getRowCount()/2,         
 		1,                                  
 		CvType.CV_32FC1                     
 	);
 
 	Mat testTraits = new Mat(		// test 
-		trainingData.getRowCount()/numCrossValidate,         
+		trainingData.getRowCount()/2,         
 		trainingData.getColumnCount() - 1, 
 		CvType.CV_32FC1                   
 	);
 
 	Mat testAnswers = new Mat(		// test answers
-		trainingData.getRowCount()/numCrossValidate,         
+		trainingData.getRowCount()/2,         
 		1,                                  
 		CvType.CV_32FC1                     
 	);
@@ -42,22 +40,22 @@ void findmodel(){
 	int trainingid=0,testid=0;
 	for(int row = 0; row < trainingData.getRowCount(); row++){          //Converting CSV to Mats for RF
 		for(int col = 0; col < trainingData.getColumnCount(); col++){
-			if (row%numCrossValidate!=0){                        		//every odd row is training data
+			if (row%2!=0){                        //every odd row is training data
 				if (col < trainingData.getColumnCount() - 1){
 					trainingTraits.put(trainingid, col, trainingData.getFloat(row, col)); //0 to 7th column stored in training traits
 				}  
 				else{
 					trainingAnswers.put(trainingid, 0, trainingData.getInt(row, col));  //8th which is the user id is the training answer
-					trainingid++;                             			//counter for filling in the next row of the Mat object
+					trainingid++;                             //counter for filling in the next row of the Mat object
 				}
 			}
-			else{                                   					//even row is test data
+			else{                                   //even row is test data
 				if (col < trainingData.getColumnCount() - 1){  
 					testTraits.put(testid, col, trainingData.getFloat(row, col));
 				}
 				else{                                           
 					testAnswers.put(testid, 0, trainingData.getInt(row, col));
-					testid++;                                  			//counter for filling in the next row of the Mat object
+					testid++;                                  //counter for filling in the next row of the Mat object
 				}
 			}
 		}
@@ -67,7 +65,6 @@ void findmodel(){
   for(int y=0;y<numtrees.length;y++){
   for(int z=0;z<maxdepth.length;z++){		//various combinations of paramters tried to find best accuracy
   
-    for(int i=0; i<numCrossValidate;i++){	//not really needed, currently all it does is repeat the process with exact same test & train data, but since model may vary, results vary a bit and average is taken.	
 	  //setting the variable types for the algorithm by passing a same sized Mat object with set to CV_VAR_NUMERICAL.(dimention is: (feature num + 1) x 1)
       Mat varType = new Mat(trainingData.getColumnCount(), 1, CvType.CV_8U );	 
       varType.setTo(new Scalar(0)); // 0 = CV_VAR_NUMERICAL.
@@ -81,7 +78,7 @@ void findmodel(){
       params.set_regression_accuracy(0);					//predicting clasifications rather than regressions
       params.set_use_surrogates(false);						//we have a full data set
       params.set_max_categories(maxCategories);
-	//not exist??  params.set_priorities(priors); // should set priorities
+	//not exist??  params.set_priorities(priors);
       params.set_calc_var_importance(true);
       params.set_nactive_vars(0);							//zero to automatically set
       params.set_term_crit(new TermCriteria(TermCriteria.MAX_ITER + TermCriteria.EPS,numtrees[y],0.0f));
@@ -92,22 +89,14 @@ void findmodel(){
       
       // Now test against current test set
       int correctAnswers = 0;
-      for(int j = 0; j < trainingData.getRowCount()/numCrossValidate; j++){
+      for(int j = 0; j < trainingData.getRowCount()/2; j++){
         if((int)forest.predict(testTraits.row(j)) == (int)testAnswers.get(j, 0)[0]){						//check prediction against actual answer
 		  correctAnswers++;
 		}	
       }
-      crossvalidacc[i] = (float) correctAnswers*100/(trainingData.getRowCount()/numCrossValidate);
-      println("cross valid acc is: " + crossvalidacc[i] + " for i " + i);
-    }
-	
-    //Average accuracies for each cross-validated set at current parameters
-    float sum = 0;
-    for (int k=0; k<crossvalidacc.length; k++){
-      sum += crossvalidacc[k];
-    }
-	resultaccuracy = sum/crossvalidacc.length;
-	
+      resultaccuracy = (float) correctAnswers*100/(trainingData.getRowCount()/2);
+      println("cross valid acc is: " + resultaccuracy);
+    	
 	//save parameters if model is good
     if(resultaccuracy>bestaccuracy){		
       bestaccuracy=resultaccuracy;

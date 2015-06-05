@@ -49,7 +49,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routing
 
 app.get('/', function(req, res){
+<<<<<<< HEAD
 	res.sendFile('/Users/Rajan/Documents/repos/occusense/src/server/views/index.html');
+=======
+	res.sendfile(__dirname + '/views/index.html');
+>>>>>>> 668466e6922a4cb5be4db6560840439fa3ff7d9c
 });
 
 //app.use('/', routes);
@@ -227,6 +231,7 @@ var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
 		console.log(doc);
 		ioWebApp.emit('update:person',doc);
 	});
+	
 
 	// Event triggered when document inserted
 	oplog.on('insert', function(doc) {
