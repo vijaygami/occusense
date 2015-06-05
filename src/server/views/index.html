@@ -1,10 +1,21 @@
 <!DOCTYPE html>
-<html>
-<body>
+<html ng-app = "m_app">
 
-<h1>WebApp</h1>
-<p>Person count is <%= count%></p>
+<head>
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />    <!-- link dependancies-->
+</head>
 
+<div class="page-header">
+	<h1>
+		Marauders App
+	</h1>
+</div>
+
+<!-- include people controller under alias people-->
+<body ng-controller="ListController as list"> <!-- on loading the body, call uder_init()-->
+	<!--<p>Person count is <%= count%></p>-->
+	
+	
 	<script src="/socket.io/socket.io.js"></script>
 	<script>
 		var socket = io.connect('http://localhost:3000');
@@ -14,6 +25,134 @@
   		});
 	</script>
 
+
+    <section ng-controller ="PanelController as panel">
+      <!-- make the tabs -->
+      <!--choose class of tabs -->
+        <ul class="nav nav-pills">
+          <!-- set varialbe tab to 1 2 or 3 depending on the tab pressed. 
+          ng-click calls the controller which sets tab to 1 2 or 3
+          use ng class to keep the selected tab highlighted. it returns true when 1 2 or 3 is selected-->
+          <li ng-class="{ active: panel.isSelected(1)}"> <a href ng-click="panel.selectTab(1)">Home</a></li> 
+          <li ng-class="{ active: panel.isSelected(2)}"> <a href ng-click="panel.selectTab(2)">Training Centre</a></li>
+          <li ng-class="{ active: panel.isSelected(3)}"> <a href ng-click="panel.selectTab(3)">History</a></li>
+        </ul>
+
+    <!-- real time section -->
+	 <div class="row" ng-show="panel.isSelected(1)">
+	 	 <!-- create canvas division for the map-->
+  		<div class="col-xs-12 col-sm-6 col-md-7">
+
+  			<div class="panel panel-default">
+
+  				<div class="panel-heading">
+  					Location Map
+  				</div>
+
+  				<!-- include a colour controll which stores the colour array -->
+  				<div class="panel-body">
+  					<!-- list.persons is passed as an attribute to the scope of map-canvas directive
+  					also make the colour array an attribute to the directive-->
+  			  		<map-canvas info="list.persons" cols="list.colours"></map-canvas>
+  			  	</div>
+  			</div>
+  		</div>
+
+
+  		<div class="col-xs-6 col-md-4" ng-controller="JointController as joint">
+
+  			<!-- canvas division for join data. include the joint controller -->
+  			<div class="panel panel-default">
+  			  	<div class="panel-heading">Joints Display</div>
+  			  	<!-- space is labelled to this division to render he joints
+  			  	include colour controller which sets the colours of the skeletons-->
+  			  	<div id="joint_space" class="panel-body">
+  			  		
+  			  		<!--create drop down menu to choose the joint data to display.
+  			  		model the option value as the joint.selected variable. this will be used in the joinCanvas directive to display the correct persons skeleton-->
+  			  		<label>Select a user to display their data</label>
+  			  		<select class="form-control" ng-model="joint.selected">
+  			  			<option value="0">Non-Selected</option>
+  			  			<option ng-repeat="person in list.persons" value="{{$index+1}}" >{{person.personName}}</option>
+  			  		</select>
+              
+              
+              
+              
+
+  			  		<!--directive to generate and create the 3D space based on joint.selected selection
+  			  		pass joint.selected into the scope (0 for none, otherwise it is = to the perosn ID)
+  			  		also pass a persons joints -->
+  			  		<joint-canvas selected="joint.selected" peoples="list.persons" cols="list.colours"></joint-canvas>
+  			  		<!-- Give person Data -->
+              <div ng-hide="joint.selected == 0">
+                <div>ID: {{list.persons[joint.selected -1].personID}}</div>
+                <div>Name: {{list.persons[joint.selected -1].personName}}</div>
+                <div>Activity: {{list.persons[joint.selected -1].activity}}</div>
+                <div>Position: ({{list.persons[joint.selected -1].coord.x}}, {{list.persons[joint.selected -1].coord.y}})</div>
+              </div>
+
+  			  	</div>
+  			</div>
+
+  			<!--division for gesture centre-->
+  			<div class="panel panel-default">
+  			  	<div class="panel-heading">Gesture Centre</div>
+
+  			  	<div class="panel-body">
+              <!--create a button/panel for each gesture using ng-repeat. the icon name and description is updated dynamically -->
+  			  		<div ng-repeat="gesture in list.gestures" class="well" class="col-xs-1 col-md-3">
+                <label>{{gesture.name}}:</label>
+                <li type="button" class="btn btn-lg" aria-label="Left Align">
+                  <span style="font-size:2.2em;" class="{{gesture.icon}}" aria-hidden="true"></span>
+                </li>
+                <p>{{gesture.description}}</p>
+              </div>
+  			  	</div>
+  			</div>
+
+  			<!--division for application log-->
+  			<div class="panel panel-default">
+  			  	<div class="panel-heading">Application Log</div>
+
+  			  	<div class="panel-body">
+  			  		div4
+  			  		<p>{{list.persons[1].coord.x}}</p>
+  			  		<p ng-repeat="entry in log.entries">{{entry}}</p>
+  			  	</div>
+  			</div>
+  		</div>
+	</div>
+
+  <!-- training centre section -->
+  <div ng-show="panel.isSelected(2)">
+    
+    <!-- create buttons to train new gesutre (add or change), delete gesture, determine whether gesture is global or not (dummy, wont work)-->
+    test1
+  </div>
+
+  <!-- History Section -->
+  <div ng-show="panel.isSelected(3)">
+    test2
+  </div>
+
+  
+
+
+  </section>
+
+
+  	<!-- run script to initialise map and canvas-->
+	<script src="js/init_map.js"></script>
+
+	<!--<p>{{data.count}}</p>-->
+
+	<!-- run angular, controller etc scripts-->
+	<script type="text/javascript" src="js/angular.min.js"></script> <!-- link angular-->
+	<script type="text/javascript" src="js/m_app.js"></script> <!--link app object-->
+	<script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script> <!-- for the canvas / shapes -->
+	<script src="js/three.min.js"></script> <!-- for 3D joint data space -->
+  <script src="css/bootstrap.min.css"></script> <!-- for glyphicons-->
 </body>
 </html> 
 

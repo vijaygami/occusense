@@ -1,2 +1,5 @@
+# Ignore dot files
+.*
+
 # Ignore all node modules
 src/server/node_modules/
