@@ -47,7 +47,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Routing
 app.get('/', function(req, res){
-	res.sendFile('/home/rishi/repos/occusense/src/server/views/index.html');
+	res.sendfile(__dirname + '/views/index.html');
 });
 
 
