@@ -64,17 +64,55 @@
 
 	//controller to select the person whos joints/info we want to display
 	m_app.controller('JointController', function(){
-		//ID of the person selected
-		this.selected = 0;
+		//ID of the person selected. initially -1
+		this.selected = -1;
 
 	});
 
 	m_app.controller('GestureController', function(){
 
+		//the ID of the person to perform the gesture
+		this.operator = 0;
+
+		//the ID of the gesture to change
+		this.gestureID = 0;
+
+		//Gesture name
+		this.gestureName = "";
+
+		//index of the person that is training it
+		this.index = 0;
+
+		//name of person training
+		this.name ="";
+
+		this.test=0;
+
+		this.request = function(persons){
+			//test the function works
+			this.test = this.operator  + this.gestureID;
+
+			//set person ID of training
+			this.operator=persons[this.index].personID;
+
+			//set name of person training
+			this.name = persons[this.index].personName;
+
+
+			//INSERT SOCKET COMMS TO SERVER HERE
+			socket.emit("ges_change", "test");
+			socket.on('response', function(msg){
+				console.log(msg);
+			});
+		};
+	});
+
+	m_app.controller('TrainingController', function(){
+
 	});
 
 	//directive to indicate when a gesture is occuring, and who is doing it
-	m_app.directive('gestureIndicator', function(){
+	m_app.directive('gestureChanger', function(){
 		return{
 
 
@@ -87,7 +125,7 @@
 	m_app.directive('jointCanvas', function(){
 		return{
 			restrict: 'AEC',
-			scope: {'index': '=selected', 'peopleInfo': '=peoples', 'col_array': '=cols'}, //person ID is selected when we choose a person. skeleton is also passed into scope. scope.skeleton.head.x etc. colour array too
+			scope: {'index': '=selected', 'peopleInfo': '=peoples', 'col_array': '=cols', 'element': '='}, //person ID is selected when we choose a person. skeleton is also passed into scope. scope.skeleton.head.x etc. colour array too
 			link: function(scope, element, attrs){
 				
 				//set height and width of frames
@@ -109,7 +147,7 @@
 				var camera = new THREE.PerspectiveCamera( 75, width/ height, 0.1, 1000 );
 				var renderer = new THREE.WebGLRenderer();
 				renderer.setSize( width, height );
-				document.getElementById("joint_space").appendChild( renderer.domElement );
+				document.getElementById(scope.element).appendChild( renderer.domElement );
 
 				//call function to form the skeleton image
 				set_joints();
@@ -131,12 +169,12 @@
 					var geometry = new THREE.Geometry();
 
 					//only add vertices if the selected ID is not 0
-					if(scope.index != 0){
+					if(scope.index >= 0){
 
 						//if the selected ID is not zero, it means we want to display someones joints
 						//call this function to find the correct index in peopleInfo that corresponds with the selected ID
 						//find_index();
-						index = scope.index - 1;
+						index = scope.index ;
 
 						//create all the vertices that the lines will be made from
 						//function norm(a,b) takes the joint a, dimension b and returns the normalised co-ordinate
@@ -203,7 +241,7 @@
 					}
 
 					//if the ID passed is 0, we only want to empty the scene
-					else if(scope.index == 0){scene.remove(line);}
+					else if(scope.index < 0){scene.remove(line);}
 
 
 				};
@@ -475,7 +513,7 @@
 
 	//dummy people
 	var people = [
-		{personID: "2", personName: "Rajan", roomID: 1, coord:{x: 200, y:110}, identified: true, activity: "moving", gesture: "0",
+		{personID: "3", personName: "Rajan", roomID: 1, coord:{x: 200, y:110}, identified: true, activity: "moving", gesture:{occuring: false, ID: 1},
 		joints:{
 					head: {x: 1136.9397, y: 1838.4788, z: -199.19128},
 					neck: {x: 1116.1221, y: 1565.6326, z:-102.1272},
@@ -493,7 +531,7 @@
 					leftfoot: {x: 800.46942, y: -7.6688232, z: 106.22778 },
 					rightfoot: {x: 1359.9148, y: 8.82019, z: 164.12549 }
 				}},
-		{personID: "4", personName: "Vijay", roomID: 1, coord:{x: 150, y:100}, identified: true, activity: "moving", gesture: "Falling",
+		{personID: "11", personName: "Vijay", roomID: 1, coord:{x: 150, y:100}, identified: true, activity: "moving", gesture:{occuring: true, ID: 2},
 		joints: {
 					head: {x: 140.36835, y: 1563.377, z: 134.69678},
 					neck: {x:134.30142, y: 1268.1069, z: 137.2207},
@@ -511,7 +549,7 @@
 					leftfoot: {x: -73.46942, y: -7.6688232, z: 106.22778 },
 					rightfoot: {x: 359.9148, y: 8.82019, z: 164.12549 }
 				}},
-		{personID: "13", personName: "Alex", roomID: 1, coord:{x: 500, y:300}, identified: true, activity: "still", gesture: "Lights",
+		{personID: "8", personName: "Alex", roomID: 1, coord:{x: 500, y:300}, identified: true, activity: "still", gesture:{occuring: true, ID: 1},
 		joints: {
 					head: {x: 68.94943, y: 1592.4082, z: -407.7578},
 					neck: {x: 80.04651, y: 1381.4038, z: -399.68762},
@@ -532,8 +570,8 @@
 	];
 
 	//list of available gestures
-	var gesAvail = [{name: "Lights", ID: 0, description: "Gesture to turn on light", icon: "glyphicon glyphicon-flash"},
-					{name: "Falling", ID: 1, description: "Falling recognition to issue warning/call emergency services", icon: "glyphicon glyphicon-plus"},
+	var gesAvail = [{name: "Lights", ID: 3, description: "Gesture to turn on light", icon: "glyphicon glyphicon-flash"},
+					{name: "Falling", ID: 4, description: "Falling recognition to issue warning/call emergency services", icon: "glyphicon glyphicon-plus-sign"},
 					];
 
 	//dummy number of people identified

@@ -15,14 +15,10 @@
 <body ng-controller="ListController as list"> <!-- on loading the body, call uder_init()-->
 	<!--<p>Person count is <%= count%></p>-->
 	
-	
 	<script src="/socket.io/socket.io.js"></script>
+	
 	<script>
-		var socket = io.connect('http://localhost:3000');
-  		socket.emit('new user', {username:"Vivek"});
-  		socket.on('ack new user', function(data){
-  			document.write(data.ack);
-  		});
+		var socket = io.connect('http://localhost:3000/webApp');  		
 	</script>
 
 
@@ -40,8 +36,10 @@
 
     <!-- real time section -->
 	 <div class="row" ng-show="panel.isSelected(1)">
+      <div><label> Real Time operation of the system</label></div>
 	 	 <!-- create canvas division for the map-->
   		<div class="col-xs-12 col-sm-6 col-md-7">
+        
 
   			<div class="panel panel-default">
 
@@ -72,8 +70,8 @@
   			  		model the option value as the joint.selected variable. this will be used in the joinCanvas directive to display the correct persons skeleton-->
   			  		<label>Select a user to display their data</label>
   			  		<select class="form-control" ng-model="joint.selected">
-  			  			<option value="0">Non-Selected</option>
-  			  			<option ng-repeat="person in list.persons" value="{{$index+1}}" >{{person.personName}}</option>
+  			  			<option value="-1">Non-Selected</option>
+  			  			<option ng-repeat="person in list.persons" value="{{$index}}" >{{person.personName}}</option>
   			  		</select>
               
               
@@ -83,13 +81,13 @@
   			  		<!--directive to generate and create the 3D space based on joint.selected selection
   			  		pass joint.selected into the scope (0 for none, otherwise it is = to the perosn ID)
   			  		also pass a persons joints -->
-  			  		<joint-canvas selected="joint.selected" peoples="list.persons" cols="list.colours"></joint-canvas>
+  			  		<joint-canvas selected="joint.selected" peoples="list.persons" cols="list.colours" element="'joint_space'"></joint-canvas>
   			  		<!-- Give person Data -->
-              <div ng-hide="joint.selected == 0">
-                <div>ID: {{list.persons[joint.selected -1].personID}}</div>
-                <div>Name: {{list.persons[joint.selected -1].personName}}</div>
-                <div>Activity: {{list.persons[joint.selected -1].activity}}</div>
-                <div>Position: ({{list.persons[joint.selected -1].coord.x}}, {{list.persons[joint.selected -1].coord.y}})</div>
+              <div ng-hide="joint.selected == -1">
+                <div>ID: {{list.persons[joint.selected].personID}}</div>
+                <div>Name: {{list.persons[joint.selected].personName}}</div>
+                <div>Activity: {{list.persons[joint.selected].activity}}</div>
+                <div>Position: ({{list.persons[joint.selected].coord.x}}, {{list.persons[joint.selected].coord.y}})</div>
               </div>
 
   			  	</div>
@@ -97,14 +95,14 @@
 
   			<!--division for gesture centre-->
   			<div class="panel panel-default">
-  			  	<div class="panel-heading">Gesture Centre</div>
+  			  	<div class="panel-heading">Live Gestures</div>
 
   			  	<div class="panel-body">
               <!--create a button/panel for each gesture using ng-repeat. the icon name and description is updated dynamically -->
   			  		<div ng-repeat="gesture in list.gestures" class="well" class="col-xs-1 col-md-3">
                 <label>{{gesture.name}}:</label>
                 <li type="button" class="btn btn-lg" aria-label="Left Align">
-                  <span style="font-size:2.2em;" class="{{gesture.icon}}" aria-hidden="true"></span>
+                  <span ng-style="{color: 'red'}" style="font-size:2.2em;" class="{{gesture.icon}}" aria-hidden="true"></span>
                 </li>
                 <p>{{gesture.description}}</p>
               </div>
@@ -118,22 +116,163 @@
   			  	<div class="panel-body">
   			  		div4
   			  		<p>{{list.persons[1].coord.x}}</p>
-  			  		<p ng-repeat="entry in log.entries">{{entry}}</p>
+  			  		<blockquote ng-repeat="entry in log.entries">{{entry}}</blockquote>
   			  	</div>
   			</div>
   		</div>
 	</div>
 
   <!-- training centre section -->
-  <div ng-show="panel.isSelected(2)">
-    
+  <div ng-show="panel.isSelected(2)" ng-controller="GestureController as gesCtrl">
+    <div><label>Modify/Personalise the Gestures</label></div>
     <!-- create buttons to train new gesutre (add or change), delete gesture, determine whether gesture is global or not (dummy, wont work)-->
-    test1
+    <div class="panel panel-default">
+      <ul class="list-group">
+        <li class="list-group-item" ng-repeat="gesture in list.gestures">
+          
+          <span style="font-size:2.1em;" class="{{gesture.icon}}" aria-hidden="true"></span>
+          <!-- make the data target name binded to the gesture ID. there is a modal per gesutre. when the button is clicked, set
+               the gesCtrl.gestureID to the ID of the gesture clicked-->
+          <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#ges_modal{{gesture.ID}}" ng-click="gesCtrl.gestureID = gesture.ID">Train</button>
+
+          <button type="button" class="btn btn-primary pull-right" data-dismiss="modal" class="btn btn-primary" data-toggle="modal" data-target="#delete_warning">Delete</button>
+          
+          <label>{{gesture.name}}:   </label>
+          <p>{{gesture.description}}</p>
+
+          <!-- Modal pop up to select user to train the gesture. ID it to the gesture ID so there is one modal per gesture-->
+          <div class="modal fade" id="ges_modal{{gesture.ID}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  <h4 class="modal-title" id="myModalLabel">Training Setup - {{gesture.name}}</h4>
+                </div>
+                <div class="modal-body">
+
+                  <!-- Form to select user to perform gesture -->
+                  <form>
+                    <div class="form-group">
+                      <label for="recipient-name" class="control-label">Select User to train the gesture:</label>
+
+                        <!-- value of gesCtrl.index is person index in the array.-->
+                        <select class="form-control" ng-model="gesCtrl.index">
+                          <option value="-1" disabled="disabled">Select a user</option>
+                          <option ng-repeat="person in list.persons" value="{{$index}}" >{{person.personName}}</option>
+                        </select>
+
+                    </div>
+                  </form> 
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+
+                  <!-- set the train button up to request the training and also display joint modal -->
+                  <button ng-click="gesCtrl.request(list.persons)" type="button" data-dismiss="modal" class="btn btn-primary" data-toggle="modal" data-target="#train_screen">Train</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+
+        </li>
+      </ul>
+
+      <!-- modal for the live training screen -->
+      <div class="modal fade" id="train_screen" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="myModalLabel">{{gesCtrl.name}} is training a gesture</h4>
+            </div>
+            <div class="modal-body" id="train_display">
+
+              <!-- display joint canvas in the modals body -->
+              <joint-canvas selected="gesCtrl.index" peoples="list.persons" cols="list.colours" element="'train_display'"></joint-canvas>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- button and modal to add a new gesture -->
+      <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#add_modal">New Gesture</button>
+      <div class="modal fade" id="add_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="myModalLabel">New Gesture</h4>
+            </div>
+            <div class="modal-body">
+            <form>
+              <div class="form-group">
+                <label for="recipient-name" class="control-label">Gesture Name:</label>
+                  <input type="text" class="form-control" id="gesture-name">
+              </div>
+
+              <div class="form-group">
+                <label for="message-text" class="control-label">Description:</label>
+                <textarea class="form-control" id="gesture-description"></textarea>
+              </div>
+
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                  <label class="control-label">Icon</label>
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu" role="menu">
+                  <li><a href="#"><span style="font-size:2em;" class="glyphicon glyphicon-music" aria-hidden="true"></span></a></li>
+                  <li><a href="#"><span style="font-size:2em;" class="glyphicon glyphicon-dashboard" aria-hidden="true"></span></a></li>
+                  <li><a href="#"><span style="font-size:2em;" class="glyphicon glyphicon-fire" aria-hidden="true"></span></a></li>
+                  <li><a href="#"><span style="font-size:2em;" class="glyphicon glyphicon-glass" aria-hidden="true"></span></a></li>
+                  <li><a href="#"><span style="font-size:2em;" class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a></li>
+                </ul>
+              </div>
+            </form>              
+
+
+
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary">Train</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!--alert modal for delete gesture confirmation -->
+      <div class="modal fade" id="delete_warning">
+        <a href="#" class="close" data-dismiss="modal">&times;</a>
+        <div class="alert alert-danger fade in">
+              
+          <strong>Warning:</strong> Are you sure you want to delete this gesture?
+          <div>
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger">Delete</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- test that the submit works -->
+    <p>{{gesCtrl.test}}, {{gesCtrl.name}}, {{gesCtrl.operator}}</p>
+
+
+
   </div>
+
+
 
   <!-- History Section -->
   <div ng-show="panel.isSelected(3)">
-    test2
+    <div><label>View gesture/activity history</label></div>
   </div>
 
   
@@ -142,17 +281,20 @@
   </section>
 
 
-  	<!-- run script to initialise map and canvas-->
-	<script src="js/init_map.js"></script>
+
 
 	<!--<p>{{data.count}}</p>-->
 
 	<!-- run angular, controller etc scripts-->
+  <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
+  
 	<script type="text/javascript" src="js/angular.min.js"></script> <!-- link angular-->
 	<script type="text/javascript" src="js/m_app.js"></script> <!--link app object-->
 	<script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script> <!-- for the canvas / shapes -->
 	<script src="js/three.min.js"></script> <!-- for 3D joint data space -->
   <script src="css/bootstrap.min.css"></script> <!-- for glyphicons-->
+  <script src="http://code.jquery.com/jquery.js"></script>
+  <script src="js/bootstrap.min.js"></script>
 </body>
 </html> 
 
