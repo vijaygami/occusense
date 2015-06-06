@@ -52,7 +52,7 @@ color[]      userClr = new color[]{ color(255,0,0),
                                    };
 String[] names;
 String username = "";
-String forestfile = "C:/Users/Vijay/Documents/GitHub/occusense/src/sensor/model.xml";	//change
+String forestfile = "C:/Users/Vijay/Documents/GitHub/occusense/src/sensor/RFwithSensor/model.xml";	//change
 // Recording data to train  RF
 ArrayList<String> textdata = new ArrayList<String>();
 ArrayList<String> usertextdata = new ArrayList<String>();  // Contains names
