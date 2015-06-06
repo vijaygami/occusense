@@ -32,6 +32,7 @@
           <li ng-class="{ active: panel.isSelected(1)}"> <a href ng-click="panel.selectTab(1)">Home</a></li> 
           <li ng-class="{ active: panel.isSelected(2)}"> <a href ng-click="panel.selectTab(2)">Training Centre</a></li>
           <li ng-class="{ active: panel.isSelected(3)}"> <a href ng-click="panel.selectTab(3)">History</a></li>
+          <li ng-class="{ active: panel.isSelected(4)}"> <a href ng-click="panel.selectTab(4)">User Profiles</a></li>
         </ul>
 
     <!-- real time section -->
@@ -275,11 +276,22 @@
     <div><label>View gesture/activity history</label></div>
   </div>
 
+  <!-- User Profile Section -->
+  <div ng-show="panel.isSelected(4)">
+    <div><label>Edit user profiles</label></div>
+
+  </div>
+
+
+
   
 
 
   </section>
-
+  <!-- test database reading -->
+  <div ng-controller="TestController">
+    {{pName}}
+  </div>
 
 
 

@@ -13,6 +13,45 @@
 
 		return persons;
 	});
+
+	//service to include scope in socket.on and .emit
+	m_app.factory('socket', function($rootScope){
+		var socket = io.connect('http://localhost:3000/webApp');
+		
+		return {
+		    on: function (eventName, callback) {
+		        socket.on(eventName, function () {  
+		            var args = arguments;
+		            $rootScope.$apply(function () {
+		                callback.apply(socket, args);
+		            });
+		        });
+		    },
+		    emit: function (eventName, data, callback) {
+		        socket.emit(eventName, data, function () {
+		            var args = arguments;
+		            $rootScope.$apply(function () {
+		                if (callback) {
+		                    callback.apply(socket, args);
+		                }
+		            });
+		        })
+		    }
+		};
+	});
+
+	//test controller for reading from database
+	m_app.controller('TestController', function($scope, socket){
+
+
+		socket.on('insert:person', function(data){
+		    console.log("received update from server");
+		    console.log(data);
+			$scope.pName = data.personName;
+		});
+
+
+	});
 	
 	//controller for list of data
 	m_app.controller('ListController', function(persons, $scope, $interval){ //include scope dependency
@@ -69,6 +108,12 @@
 
 	});
 
+	//controller for animating real time live gestuers
+	m_app.controller('LivegestureController', function(){
+		
+	});
+
+	//controller for training gestures
 	m_app.controller('GestureController', function(){
 
 		//the ID of the person to perform the gesture
