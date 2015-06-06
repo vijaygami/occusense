@@ -33,7 +33,7 @@ int savesize = 150;             // Number of frames of data to collect
 boolean lostUser = false;
 
 CvRTrees forest;    // Forest object
-String forestfile = "E:/Third Year Project/main/model.xml";
+String forestfile;  // Will contain path to model.xml
 
 Camera[] cams = new Camera[numCams];      	// An array of camera objects
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
@@ -103,7 +103,7 @@ RingBuffer[] ringbuffer;  // ringbuffer to store gestures in and calculate path 
 public void setup() {
     size(1280,480, P3D); 
     frameRate(25);
-    	
+    forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     socket = new SocketIO();
     try{socket.connect("http://172.20.10.8:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
