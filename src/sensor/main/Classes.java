@@ -37,9 +37,10 @@ class cPersonIdent {
   public int identified;       // Set to true when person has been identified
   public PVector com;       // Location of centre of mass 
   public float[] featDim = new float[13];	// Feature dimensions with higher confidence
+  public float[] featDimMean = new float[12];	// Mean of feature dimensions during identification stage(excluding confidence)
   public PVector[] jointPos = new PVector[15];    // Joint positions of person
-  public int[] guesses = new int[11];			// Result of SVM for last 10 tries. 11th element is the mode of the first 10 guesses
-  public int guessIndex;        // Keeps count of guesses made. Max is 10
+  public int[] guesses = new int[21];			// Result of SVM for last 20 tries. Last element is the mode of the first 20 guesses
+  public int guessIndex;        // Keeps count of guesses made. Max is 20
 
   // Constructor
   public cPersonIdent() {
@@ -49,6 +50,7 @@ class cPersonIdent {
     this.identified = 0;      // 0 = Unidentified, 1 = Identified, 2 = Save User
     this.com = com;
     this.featDim = featDim;
+	this.featDimMean = featDimMean;
     this.jointPos = jointPos;
     this.guesses = guesses;
     this.guessIndex = guessIndex;

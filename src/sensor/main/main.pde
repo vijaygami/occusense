@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 1;
+int numCams = 2;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -221,7 +221,7 @@ public void draw() {
     
     // Draw depth image
     image(cams[0].depthImage(), 0, 0);
-   // image(cams[1].depthImage(), 640, 0);
+    image(cams[1].depthImage(), 640, 0);
     
     // Find confidence and prioritise camera for feature dimensions extraction
     if (numCams > 1){
@@ -414,6 +414,7 @@ public void singlecam(){
             personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
             personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
+			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
             personIdents.remove(inPerson);
         }
 
@@ -515,6 +516,7 @@ public void multicam(){
             personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
             personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
+			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
             personIdents.remove(inPerson);
         }
 
@@ -540,6 +542,8 @@ public void multicam(){
                 personIdent.guesses = personIdents.get(inPerson).guesses;
                 personIdent.identified = personIdents.get(inPerson).identified;
                 personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
+				personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
+
                 personIdents.remove(inPerson);
             }
 
@@ -555,7 +559,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 100000000;
+    float mseThresh = 5000;
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -569,18 +573,26 @@ public void identify(){
                     testRow.put(0, col, p.featDim[col]);
                 }
                         
-                if(p.guessIndex < 10){
-                    p.guesses[p.guessIndex] = int(forest.predict(testRow));   // Guess person using random forrest model     
+                if(p.guessIndex < 20){										  	// Make 20 guesses then find mode
+                    p.guesses[p.guessIndex] = int(forest.predict(testRow));   	// Guess person using random forrest model     
                     p.guessIndex = p.guessIndex + 1;
-                    println("guess index: " + p.guessIndex);
-                    println("Guesses: " + Arrays.toString(p.guesses));
+                    
+					for (int i=0; i<12;i++){
+						p.featDimMean[i] = p.featDimMean[i]+ p.featDim[i];		// Accumulate feature dimentions for mean calculation
+					}
+					
+					println("Guess index: " + p.guessIndex  + "    Guesses: " + Arrays.toString(p.guesses));
                 }
                 else {
                     // Find the mode (most frequent) guess
-                    p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 10));
-
-                    // Find MSE (mean squared error)
-                    mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), Arrays.copyOfRange(p.featDim, 0, 12));
+                    p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 20));
+                    
+					for (int i=0; i<12;i++){
+						p.featDimMean[i] = p.featDimMean[i]/20;					// Compute mean
+					}
+					
+                    // Find MSE (mean squared error) between mean of guessed user and mean of last 20 frames 
+                    mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), p.featDimMean);
 
                     println("MSE: " + mse);
 
@@ -985,7 +997,7 @@ void sendJoints(){
 		}
 	}
 
-	println(pos);
+	//println(pos);
 	socket.emit("person_COM",pos);
 
 	
