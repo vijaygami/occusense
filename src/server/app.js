@@ -49,11 +49,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routing
 
 app.get('/', function(req, res){
-<<<<<<< HEAD
-	res.sendFile('/Users/Rajan/Documents/repos/occusense/src/server/views/index.html');
-=======
 	res.sendfile(__dirname + '/views/index.html');
->>>>>>> 668466e6922a4cb5be4db6560840439fa3ff7d9c
 });
 
 //app.use('/', routes);
@@ -210,10 +206,9 @@ var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
 
 	// On connection, send all people who have been identified
 	var Person = mongoose.model('Person');
-	personData.personCount(function(count){
-		socket.emit('personCount', {pCount:count});
-	}); // Change this 
-
+	personData.identPeople(function(data){
+		socket.emit('initial:person', {data});
+	});
 
 	/* Events called on specific socket */
 	/*----------------------------------*/
@@ -241,5 +236,3 @@ var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
 	});
 
 });
-
- 
