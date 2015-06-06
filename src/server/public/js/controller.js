@@ -11,6 +11,12 @@ angular.module('myApp.controllers', [])
     	$scope.count = data.pCount;
     });
 
+    socket.on('initial:person', function(data){
+        console.log("received data from server!");
+        //console.log(data);
+        $scope.people = data;
+    });
+
     socket.on('update:person', function(data){
         console.log("received update from server");
         console.log(data);

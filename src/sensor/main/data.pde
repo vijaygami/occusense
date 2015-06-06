@@ -94,8 +94,8 @@ void saveData(int moveID) {
     
     for(int i=0;i<data.datalist.size();i++){
       try {       
-        //float = 
-        gestureArray.put((data.datalist.get(i)));    // Add all gesture data to a JSONArray
+        float a = Float.valueOf((String)(data.datalist.get(i)));    // temp to convert object to string to float to put in JSONArray
+        gestureArray.put(a);    // Add all gesture data to a JSONArray
         gestureObjectOutgoing.put("gesturedata", gestureArray);    // Add it to a JSONObject with key gesturedata
      }
      catch (JSONException e) {}

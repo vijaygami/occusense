@@ -33,7 +33,7 @@ int savesize = 150;             // Number of frames of data to collect
 boolean lostUser = false;
 
 CvRTrees forest;    // Forest object
-String forestfile = "E:/Third Year Project/main/model.xml";
+String forestfile;  // Will contain path to model.xml
 
 Camera[] cams = new Camera[numCams];      	// An array of camera objects
 ArrayList<cPersonIdent> personIdents = new ArrayList<cPersonIdent>();
@@ -63,8 +63,8 @@ float comx_last = 0;  // used for speed of person
 float comz_last = 0;  // used for speed of person
 int index; //index of person asked to be trained
 int globalperson = 0;  // global id of person for who gesture recognition is enabled
-int gestureId=0;      // gesture Id to be trained (preceived from server and passed to gesture function)
-int globalId=0;       // global Id of person needed training
+int gestureId = 0;      // gesture Id to be trained (preceived from server and passed to gesture function)
+int globalId = 0;       // global Id of person needed training
 boolean updateGesture = false;   // save new gesture received from the server
 
 // JSON stuff for server
@@ -103,7 +103,7 @@ RingBuffer[] ringbuffer;  // ringbuffer to store gestures in and calculate path 
 public void setup() {
     size(1280,480, P3D); 
     frameRate(25);
-    	
+    forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     socket = new SocketIO();
     try{socket.connect("http://172.20.10.8:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
@@ -246,7 +246,7 @@ public void draw() {
     // This is due to the callback being called in the middle of other functions.
     if (lostUser) deleteUser();
 
-    debug();
+    //debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){		
@@ -414,6 +414,7 @@ public void singlecam(){
             personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
             personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
+			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
             personIdents.remove(inPerson);
         }
 
@@ -515,6 +516,7 @@ public void multicam(){
             personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
             personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
+			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
             personIdents.remove(inPerson);
         }
 
@@ -540,6 +542,8 @@ public void multicam(){
                 personIdent.guesses = personIdents.get(inPerson).guesses;
                 personIdent.identified = personIdents.get(inPerson).identified;
                 personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
+				personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
+
                 personIdents.remove(inPerson);
             }
 
@@ -555,7 +559,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 100000000;
+    float mseThresh = 5000;
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -569,18 +573,26 @@ public void identify(){
                     testRow.put(0, col, p.featDim[col]);
                 }
                         
-                if(p.guessIndex < 10){
-                    p.guesses[p.guessIndex] = int(forest.predict(testRow));   // Guess person using random forrest model     
+                if(p.guessIndex < 20){										  	// Make 20 guesses then find mode
+                    p.guesses[p.guessIndex] = int(forest.predict(testRow));   	// Guess person using random forrest model     
                     p.guessIndex = p.guessIndex + 1;
-                    println("guess index: " + p.guessIndex);
-                    println("Guesses: " + Arrays.toString(p.guesses));
+                    
+					for (int i=0; i<12;i++){
+						p.featDimMean[i] = p.featDimMean[i]+ p.featDim[i];		// Accumulate feature dimentions for mean calculation
+					}
+					
+					println("Guess index: " + p.guessIndex  + "    Guesses: " + Arrays.toString(p.guesses));
                 }
                 else {
                     // Find the mode (most frequent) guess
-                    p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 10));
-
-                    // Find MSE (mean squared error)
-                    mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), Arrays.copyOfRange(p.featDim, 0, 12));
+                    p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 20));
+                    
+					for (int i=0; i<12;i++){
+						p.featDimMean[i] = p.featDimMean[i]/20;					// Compute mean
+					}
+					
+                    // Find MSE (mean squared error) between mean of guessed user and mean of last 20 frames 
+                    mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), p.featDimMean);
 
                     println("MSE: " + mse);
 
@@ -678,31 +690,27 @@ public void gesture(){
   if(train_gesture){
       index = findLocalIdent(globalId);  // find index of where the global person is held in the global array
       
-    if(index == 0 ){      // for debugging removee
-    if(personIdents.get(index).identified == 1){  // for debugging removee
+    if(personIdents.get(index).identified == 1){  
       
-    // only find index once at the start of when train gesture is called
-    if(train_once){
-      // get id of global id then look up in structure to get cam id and local id once
-      //index = findLocalIdent(globalID);
-      train_once = false;
-      start_gesture_train = millis();  // start timer
-      println("started training");
+      // start timer for gesture training
+      if(train_once){
+        train_once = false;
+        start_gesture_train = millis();  // start timer
+        println("started training");
+      }
+     
+      // fill buffer i.e call evaluate skeleton function
+      evaluateSkeleton(personIdents.get(index).jointPos);
+    
+      // save pose after 6s
+      if (millis() - start_gesture_train > 6000){
+        saveGesture(gestureId);
+        train_gesture = false;
+        train_once = true;
+        println("saved pose");
+      }
     }
     
-    
-    // fill buffer i.e call evaluate skeleton function
-    evaluateSkeleton(personIdents.get(index).jointPos);
-    
-    // save pose after 6s
-    if (millis() - start_gesture_train > 6000){
-      saveGesture(gestureId);
-      train_gesture = false;
-      train_once = true;
-      println("saved pose");
-    }
-    }
-    }
   }
   
   //track the gesture
@@ -716,7 +724,6 @@ public void gesture(){
         voluntary_start = true;  // start voluntary gesture detection
         start_gesture_recog = millis();  // used to timeout gesture recognition
         index = findLocalIdent(globalperson);  // store index of global person in the global array
-        //index = p.personId - 1;
         println("start gesture detected " + globalperson);
         
    }
@@ -737,10 +744,10 @@ public void gesture(){
         comz_last = p.com.z;
           //threshold determined by trial in mm
         if(speed_xz < 123 && speed_xz > 40){
-            println("walking");
+            // println("walking");    // socket emit here maybe
          }
           else if(speed_xz > 250){
-            println("running");
+           // println("running");    // socket emit here maybe
           }
      }
      
@@ -753,12 +760,12 @@ public void gesture(){
   if(voluntary_start){
     index = findLocalIdent(globalperson);  // update index of global person in global array
     
-    if(cams[0].isTrackingSkeleton(personIdents.get(index).personId)){    // change to get which cam the person is on could be 0 or 1 for two cameras
+    if(cams[personIdents.get(index).camId].isTrackingSkeleton(personIdents.get(index).personId)){    // if we are tracking the global person
 
       evaluateSkeleton(personIdents.get(index).jointPos);  // call evaluate skeleton functions
       evaluateCost();  // work out cost functions
 
-    // reset starting pose detected as false after 5s last gesture performed or 5 seconds after no activity
+    // reset starting pose detected as false after 10s last gesture performed or 10 seconds after no activity
       if(millis() - start_gesture_recog > 10000){
         voluntary_start = false;
         println("timeout");
@@ -839,7 +846,7 @@ public void evaluateCost(){
             if ( ( cost[p][gestindex] < 0.3 ) && ( costLast[p][gestindex] >= 0.3 ) )
             {
                 
-                 socket.emit("ges_perf",gestindex, globalperson);//found gesture and output to server
+                 socket.emit("ges_perf",gestindex, globalperson);  //found gesture and output to server
                 println("found gesture #" + gestindex + " user #" + globalperson);  // found gesture
                 start_gesture_recog = millis();  // reset gesture timeout 
 
@@ -990,7 +997,7 @@ void sendJoints(){
 		}
 	}
 
-	println(pos);
+	//println(pos);
 	socket.emit("person_COM",pos);
 
 	
