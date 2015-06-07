@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 2;
+int numCams = 1;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -122,18 +122,18 @@ public void setup() {
 			dataAvailable=true;			
 		  }
 
-                  if(event.equals("ges_train")){
-                       gestureId = (Integer)args[0];
-                       globalId= (Integer)args[1];
-                      train_gesture=true;      
-                    }
-                    
-                  if(event.equals("ges_res")){
-                       gestureObjectIncoming = new JSONObject();
-                       gestureObjectIncoming = (JSONObject)args[0];
-                       gestureId = (Integer)args[1];
-                       updateGesture = true;
-                    }
+		  if(event.equals("ges_train")){
+			   gestureId = (Integer)args[0];
+			   globalId= (Integer)args[1];
+			  train_gesture=true;      
+		  }
+			
+		  if(event.equals("ges_res")){
+			   gestureObjectIncoming = new JSONObject();
+			   gestureObjectIncoming = (JSONObject)args[0];
+			   gestureId = (Integer)args[1];
+			   updateGesture = true;
+		  }
 		  
 	}});
 	}catch(MalformedURLException e1){e1.printStackTrace();}
@@ -150,16 +150,23 @@ public void setup() {
         String[] coordsys = loadStrings("usercoordsys"+i+".txt");
         float[] usercoordsys = float(split(coordsys[0],","));
         
-        cams[i].setUserCoordsys(usercoordsys[0],usercoordsys[1], usercoordsys[2],
-                          usercoordsys[3], usercoordsys[4], usercoordsys[5],
-                          usercoordsys[6], usercoordsys[7], usercoordsys[8]);
+
         
         // The last two points are the coordinates of the calibration point 
-        // relative to the 0,0 location of the floorplan. Required for a universal
+        // relative to the 0,0 (x,z) location of the floorplan. Required for a universal
         // coordinate system
         if(usercoordsys.length > 9){
-            
+			cams[i].setUserCoordsys(
+				(usercoordsys[0]+usercoordsys[9]),usercoordsys[1], (usercoordsys[2]+usercoordsys[10]),	// Shifted Null point
+				usercoordsys[3], usercoordsys[4], (usercoordsys[5]+usercoordsys[10]),					// Translated X direction vector
+				(usercoordsys[6]+usercoordsys[9]), usercoordsys[7], usercoordsys[8]);					// Translated Z direction vector
         }
+		else{
+			cams[i].setUserCoordsys(
+				usercoordsys[0],usercoordsys[1], usercoordsys[2],	// Null point
+				usercoordsys[3], usercoordsys[4], usercoordsys[5],	// X direction vector
+				usercoordsys[6], usercoordsys[7], usercoordsys[8]);	// Z direction vector, Y direction is orthogonal to both x,z
+		}
     }    
 
     // Load data from files into arrays
@@ -221,7 +228,7 @@ public void draw() {
     
     // Draw depth image
     image(cams[0].depthImage(), 0, 0);
-    image(cams[1].depthImage(), 640, 0);
+    //image(cams[1].depthImage(), 640, 0);
     
     // Find confidence and prioritise camera for feature dimensions extraction
     if (numCams > 1){
@@ -936,7 +943,7 @@ void newUserRecieved(JSONArray recieved){
   loadData();  						// Loads Random Forest data used for training into arrayList 'textdata'
 
   
-  // Add row of data to 'textdata' and acumulate features' sums for mean calculation
+  // Add row of data to 'textdata' and accumulate features' sums for mean calculation
   for(int i=0; i<(recieved.length()); i++){
     try{
   	addData( (Integer)(recieved.getJSONObject(i).get("gpersonId")) , float(split( ((String)(recieved.getJSONObject(i)).getString("featDim")).substring(1, ( (((String)(recieved.getJSONObject(i)).getString("featDim"))).length()-1)) , ','       )) ); // Adds to textdata
