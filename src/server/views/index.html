@@ -11,8 +11,8 @@
 	</h1>
 </div>
 
-<!-- include people controller under alias people-->
-<body ng-controller="ListController as list"> <!-- on loading the body, call uder_init()-->
+<!-- include ListController, with scope injected-->
+<body ng-controller="ListController">
 	<!--<p>Person count is <%= count%></p>-->
 	
 	<script src="/socket.io/socket.io.js"></script>
@@ -50,9 +50,9 @@
 
   				<!-- include a colour controll which stores the colour array -->
   				<div class="panel-body">
-  					<!-- list.persons is passed as an attribute to the scope of map-canvas directive
+  					<!-- people from listcontroller is passed as an attribute to the scope of map-canvas directive
   					also make the colour array an attribute to the directive-->
-  			  		<map-canvas info="list.persons" cols="list.colours"></map-canvas>
+  			  		<map-canvas info="people" cols="colours"></map-canvas>
   			  	</div>
   			</div>
   		</div>
@@ -68,11 +68,11 @@
   			  	<div id="joint_space" class="panel-body">
   			  		
   			  		<!--create drop down menu to choose the joint data to display.
-  			  		model the option value as the joint.selected variable. this will be used in the joinCanvas directive to display the correct persons skeleton-->
+  			  		model the option value as the joint.selected variable. this will be used in the joinCanvas directive to display the correct persons skeleton. track by personName -->
   			  		<label>Select a user to display their data</label>
   			  		<select class="form-control" ng-model="joint.selected">
   			  			<option value="-1">Non-Selected</option>
-  			  			<option ng-repeat="person in list.persons" value="{{$index}}" >{{person.personName}}</option>
+  			  			<option ng-repeat="person in people track by person.personName" value="{{$index}}" >{{person.personName}}</option>
   			  		</select>
               
               
@@ -80,15 +80,15 @@
               
 
   			  		<!--directive to generate and create the 3D space based on joint.selected selection
-  			  		pass joint.selected into the scope (0 for none, otherwise it is = to the perosn ID)
+  			  		pass joint.selected into the scope (0 for none, otherwise it is = to the perosn index)
   			  		also pass a persons joints -->
-  			  		<joint-canvas selected="joint.selected" peoples="list.persons" cols="list.colours" element="'joint_space'"></joint-canvas>
+  			  		<joint-canvas selected="joint.selected" peoples="people" cols="colours" element="'joint_space'"></joint-canvas>
   			  		<!-- Give person Data -->
               <div ng-hide="joint.selected == -1">
-                <div>ID: {{list.persons[joint.selected].personID}}</div>
-                <div>Name: {{list.persons[joint.selected].personName}}</div>
-                <div>Activity: {{list.persons[joint.selected].activity}}</div>
-                <div>Position: ({{list.persons[joint.selected].coord.x}}, {{list.persons[joint.selected].coord.y}})</div>
+                <div>ID: {{people[joint.selected].personID}}</div>
+                <div>Name: {{people[joint.selected].personName}}</div>
+                <div>Activity: {{people[joint.selected].activity}}</div>
+                <div>Position: ({{people[joint.selected].coord.x}}, {{people[joint.selected].coord.y}})</div>
               </div>
 
   			  	</div>
@@ -100,7 +100,7 @@
 
   			  	<div class="panel-body">
               <!--create a button/panel for each gesture using ng-repeat. the icon name and description is updated dynamically -->
-  			  		<div ng-repeat="gesture in list.gestures" class="well" class="col-xs-1 col-md-3">
+  			  		<div ng-repeat="gesture in gestures" class="well" class="col-xs-1 col-md-3">
                 <label>{{gesture.name}}:</label>
                 <li type="button" class="btn btn-lg" aria-label="Left Align">
                   <span ng-style="{color: 'red'}" style="font-size:2.2em;" class="{{gesture.icon}}" aria-hidden="true"></span>
@@ -116,7 +116,7 @@
 
   			  	<div class="panel-body">
   			  		div4
-  			  		<p>{{list.persons[1].coord.x}}</p>
+  			  		<p>{{people[1].coord.x}}</p>
   			  		<blockquote ng-repeat="entry in log.entries">{{entry}}</blockquote>
   			  	</div>
   			</div>
@@ -129,7 +129,7 @@
     <!-- create buttons to train new gesutre (add or change), delete gesture, determine whether gesture is global or not (dummy, wont work)-->
     <div class="panel panel-default">
       <ul class="list-group">
-        <li class="list-group-item" ng-repeat="gesture in list.gestures">
+        <li class="list-group-item" ng-repeat="gesture in gestures">
           
           <span style="font-size:2.1em;" class="{{gesture.icon}}" aria-hidden="true"></span>
           <!-- make the data target name binded to the gesture ID. there is a modal per gesutre. when the button is clicked, set
@@ -159,7 +159,7 @@
                         <!-- value of gesCtrl.index is person index in the array.-->
                         <select class="form-control" ng-model="gesCtrl.index">
                           <option value="-1" disabled="disabled">Select a user</option>
-                          <option ng-repeat="person in list.persons" value="{{$index}}" >{{person.personName}}</option>
+                          <option ng-repeat="person in people track by person.personName" value="{{$index}}" >{{person.personName}}</option>
                         </select>
 
                     </div>
@@ -170,7 +170,7 @@
                   <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
 
                   <!-- set the train button up to request the training and also display joint modal -->
-                  <button ng-click="gesCtrl.request(list.persons)" type="button" data-dismiss="modal" class="btn btn-primary" data-toggle="modal" data-target="#train_screen">Train</button>
+                  <button ng-click="gesCtrl.request(people)" type="button" data-dismiss="modal" class="btn btn-primary" data-toggle="modal" data-target="#train_screen">Train</button>
                 </div>
               </div>
             </div>
@@ -192,7 +192,7 @@
             <div class="modal-body" id="train_display">
 
               <!-- display joint canvas in the modals body -->
-              <joint-canvas selected="gesCtrl.index" peoples="list.persons" cols="list.colours" element="'train_display'"></joint-canvas>
+              <joint-canvas selected="gesCtrl.index" peoples="people" cols="colours" element="'train_display'"></joint-canvas>
 
             </div>
           </div>
@@ -280,18 +280,34 @@
   <div ng-show="panel.isSelected(4)">
     <div><label>Edit user profiles</label></div>
 
+    <div class="panel panel-default">
+      <ul class="list-group">
+        <li class="list-group-item" ng-repeat="person in people">
+          <label>Name:</label> {{person.personName}}
+          <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#editname_modal">Edit</button>
+
+        </li>
+      </ul>
+    </div>
+
+
   </div>
 
+  <!-- test database reading -->
+  <div>
 
+    {{people[0]["joints"]["head"].x}}
+    <div ng-repeat="person in people">
+      {{person.personName}}
+    </div>
+  </div>
 
   
 
 
   </section>
-  <!-- test database reading -->
-  <div ng-controller="TestController">
-    {{pName}}
-  </div>
+
+  
 
 
 
