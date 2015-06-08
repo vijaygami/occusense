@@ -4,6 +4,7 @@
 
 
 	//service to store people data
+	/*
 	m_app.factory('persons', function(){
 		//data object that the dependencies of the service recieves
 		var persons={};
@@ -12,7 +13,7 @@
 		persons.list = people;
 
 		return persons;
-	});
+	});*/
 
 	//service to include scope in socket.on and .emit
 	m_app.factory('socket', function($rootScope){
@@ -43,26 +44,32 @@
 	//test controller for reading from database
 	m_app.controller('TestController', function($scope, socket){
 
-
 		socket.on('insert:person', function(data){
 		    console.log("received update from server");
 		    console.log(data);
 			$scope.pName = data.personName;
 		});
 
+		//when the app starts, recieve all the data
+		socket.on('update:person', function(data){
+        console.log("received data from server!");
+        //console.log(data);
+        $scope.peopleTest = data;
+    	});
+
 
 	});
 	
 	//controller for list of data
-	m_app.controller('ListController', function(persons, $scope, $interval){ //include scope dependency
+	m_app.controller('ListController', function($scope, $interval, socket){ //include scope dependency
 
 		//create dummy people
 		//$scope.persons = people;
-		var self = this;
+		//var self = this;
 
-		self.persons = persons.list;
+		//self.persons = persons.list;
 
-		self.colours = [
+		$scope.colours = [
 					{colour: "#9be466", used: false, ID: 0},
 					{colour: "#0092ff", used: false, ID: 0},
 					{colour: "#bca7d2", used: false, ID: 0},
@@ -71,15 +78,28 @@
 					];
 
 		//array for activity log. it will be pushed to from the gesture indicator controller and the mapCanvas directives controller
-		self.log = [];
+		$scope.log = [];
 
 		//list of gestures available
-		self.gestures = gesAvail;
+		$scope.gestures = gesAvail;
 
 		//constantly update scope
-        $interval([$scope.$apply()], [500]);
-   		
+        //$interval([$scope.$apply()], [500]);
 
+        //when on interval, request data
+        $interval(function(){
+			socket.emit('request:person');
+			
+	   	}, [1500]);
+
+        //update people when the data is recieved
+	   	socket.on('update:person', function(data){
+	        console.log("received data from server!");
+	        //console.log(data);
+		    //people is an array of all people objects with their data
+		    $scope.people = data;
+	    });
+	   	
 
 		//$scope.count = n_people;
 	});
@@ -194,9 +214,11 @@
 				renderer.setSize( width, height );
 				document.getElementById(scope.element).appendChild( renderer.domElement );
 
-				//call function to form the skeleton image
-				set_joints();
-				
+				//call function to form the skeleton image. ONLY if the people data is defined
+				//(prevents trying to access data before its loaded on start up)
+				if(typeof scope.peopleInfo != "undefined"){
+					set_joints();
+				}
 				//function to create skeleton 
 				function set_joints(){
 
@@ -298,15 +320,17 @@
 				//function continuously calls to render the scene
 				var render = function(){
 					//continuously re calculate the joints
-					set_joints();
-
-					// test animation
-					if(counter == 50){test = -test; counter=0;}
-					scope.peopleInfo[index]["joints"]["torso"]["x"] += test;
-					scope.peopleInfo[index]["joints"]["lefthand"]["y"] += test;
-					scope.peopleInfo[index]["joints"]["righthand"]["y"] += test;
-					counter++;
+					if(typeof scope.peopleInfo != "undefined"){
+						set_joints();
 					
+						// test animation
+					
+						if(counter == 50){test = -test; counter=0;}
+						scope.peopleInfo[index]["joints"]["torso"]["x"] += test;
+						scope.peopleInfo[index]["joints"]["lefthand"]["y"] += test;
+						scope.peopleInfo[index]["joints"]["righthand"]["y"] += test;
+						counter++;
+					}
 					//render
 					requestAnimationFrame( render );
 					renderer.render( scene, camera );
@@ -334,11 +358,15 @@
 				function find_colour(){
 
 					var correct_colour;
+
+
 					for(var i=0; i<scope.col_array.length;i++){
+
 						if(scope.col_array[i].ID == scope.peopleInfo[index].personID){correct_colour = scope.col_array[i].colour; break;}
 					}
 
 					return correct_colour;
+					
 				}
 
 			}
@@ -557,6 +585,7 @@
 	});
 
 	//dummy people
+	/*
 	var people = [
 		{personID: "3", personName: "Rajan", roomID: 1, coord:{x: 200, y:110}, identified: true, activity: "moving", gesture:{occuring: false, ID: 1},
 		joints:{
@@ -612,7 +641,7 @@
 					leftfoot: {x: -73.46942, y: -7.6688232, z: 106.22778 },
 					rightfoot: {x: 359.9148, y: 8.82019, z: 164.12549 }
 				}}
-	];
+	];*/
 
 	//list of available gestures
 	var gesAvail = [{name: "Lights", ID: 3, description: "Gesture to turn on light", icon: "glyphicon glyphicon-flash"},
