@@ -143,54 +143,20 @@ function onListening() {
 }
 
 
-// Client-server connection through socket.io
-ioServer.on('connection', function(socket){
-	console.log('New client connected with id = ' + socket.id);
+//event handler for server 
+var ioWeb = ioServer.of('/web').on('connection', function (socket) {
+
+	console.log('Web connected with id = ' + socket.id);
 
 	socket.on('disconnect', function(){
-	console.log(socket.id + ' disconnected!!');
+	    console.log(socket.id + ' disconnected!!');
 	});
 
-	// test socket event
-	socket.on('getCount', function(){
-		console.log("Received count request from client: " + socket.id);
-		personData.personCount(function(count){
-			socket.emit('personCount', {pCount:count});
-		});
-	});
-  
-	// Custom socket event to assign ID to new user
-	socket.on('request new user id', function(data){
-	// Assign model to var
-	var Person = mongoose.model('Person');
+	setInterval(function(){
+		socket.emit('date', {'date': new Date()});
+	}, 1000);
 
-	Person.count({'identified':true}, 
-	  function(err, count){
-		if(count == 0){
-		  // If no people in database then assign ID = 1
-		  var newID = 1;
-		} else {
-		  // Else find the max used ID and generate a new ID
-		  
-		  // Query 'people' collection to find max used ID
-		  Person
-			.findOne()
-			.sort('-personID')
-			.exec(function(err, doc){
-			  // Generate new ID and name
-			  var newID = doc.personID + 1;
-			  var newUser = "Guest_" + newID;
-
-			  // Broadcast new user details to all clients
-			  socket.emit('new user', {userID:newID, user:newUser})
-
-			});
-		}
-	  }
-	);
-	}); // End of event
-
-}); // End of ioServer */
+});
 
 //event handler for sensor nodes
 var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
