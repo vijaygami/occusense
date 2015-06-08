@@ -13,14 +13,6 @@
 
 <!-- include ListController, with scope injected-->
 <body ng-controller="ListController">
-	<!--<p>Person count is <%= count%></p>-->
-	
-	<script src="/socket.io/socket.io.js"></script>
-	
-	<script>
-		var socket = io.connect('http://localhost:3000/webApp');  		
-	</script>
-
 
     <section ng-controller ="PanelController as panel">
       <!-- make the tabs -->
@@ -307,15 +299,8 @@
 
   </section>
 
-  
-
-
-
-	<!--<p>{{data.count}}</p>-->
-
 	<!-- run angular, controller etc scripts-->
-  <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
-  
+  <script src="/socket.io/socket.io.js"></script>
 	<script type="text/javascript" src="js/angular.min.js"></script> <!-- link angular-->
 	<script type="text/javascript" src="js/m_app.js"></script> <!--link app object-->
 	<script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script> <!-- for the canvas / shapes -->

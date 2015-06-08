@@ -21,7 +21,10 @@ var app = express();
 var server = http.createServer(app);
 
 // Attach Socket.IO to server
-var ioServer = require('socket.io')(server);
+var ioServer = require('socket.io').listen(server);
+
+//settings for socket.io
+ioServer.set('log level', 1);
 
 //Get port from environment and store in Express
 var port = normalizePort(process.env.PORT || '3000');
@@ -48,7 +51,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Routing
 
 app.get('/', function(req, res){
-	res.sendfile(__dirname + '/views/index.html');
+	res.sendFile(__dirname + '/views/index.html');
 });
 
 //app.use('/', routes);
