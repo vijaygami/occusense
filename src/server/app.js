@@ -14,7 +14,6 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 require('./db/db');
 var personData = require('./db/person');
-var OplogWatcher = require('mongo-oplog-watcher');
 var routes = require('./routes/index');
 
 // Create app instance
@@ -194,45 +193,22 @@ ioServer.on('connection', function(socket){
 }); // End of ioServer */
 
 
-// Watch people collection in depthdb for changes
-var oplog = new OplogWatcher({
-  host:"127.0.0.1:27017" ,ns: "depthdb.people"
-});
-
-
 // Web socket namespace /webApp to handle connections to web app clients
 var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
 	console.log('Web app client connected: ' + socket.id);
 
-	// On connection, send all people who have been identified
 	var Person = mongoose.model('Person');
-	personData.identPeople(function(data){
-		socket.emit('initial:person', {data});
-	});
-
+	
 	/* Events called on specific socket */
 	/*----------------------------------*/
+	socket.on('request:person', function(){
+		personData.identPeople(function(data){
+			socket.emit('update:person', data);
+		});		
+	});
 
 	socket.on('ges_change',function(data){
 		socket.emit('response', data);
-	});
-
-	/* Events called on the whole namespace */
-	/*--------------------------------------*/
-	
-	// Event triggered when document updated
-	oplog.on('update', function(doc) {
-		console.log("Person document updated!");
-		console.log(doc);
-		ioWebApp.emit('update:person',doc);
-	});
-	
-
-	// Event triggered when document inserted
-	oplog.on('insert', function(doc) {
-		console.log("New person document inserted!");
-		console.log(doc);
-		ioWebApp.emit('insert:person',doc);
 	});
 
 });
