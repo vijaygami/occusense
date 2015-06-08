@@ -104,6 +104,7 @@ public void setup() {
     size(640*numCams,480, P3D); 
     frameRate(25);
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
+    
     socket = new SocketIO();
     try{socket.connect("http://129.31.210.8:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
@@ -149,8 +150,6 @@ public void setup() {
         // Calibrate camera
         String[] coordsys = loadStrings("usercoordsys"+i+".txt");
         float[] usercoordsys = float(split(coordsys[0],","));
-        
-
         
         // The last two points are the coordinates of the calibration point 
         // relative to the 0,0 (x,z) location of the floorplan. Required for a universal
@@ -253,7 +252,10 @@ public void draw() {
     
     // If user lost, delete from global arrays here instead of in onLostUser()
     // This is due to the callback being called in the middle of other functions.
-    if (lostUser) deleteUser();
+    if (lostUser){
+        deleteUser();
+        lostUser = false;
+    }
 
     //debug();
 	
@@ -273,12 +275,11 @@ public void debug(){
     println("personIdents: " + personIdents.size());
 
     for(cPersonIdent p : personIdents){
-        println("ID: " + p.personId);
-        println("camID: " + p.camId);
+        //println("cams: " + Arrays.toString(p.cams));
         println("FeatDim: " + Arrays.toString(p.featDim));
-        println("Identified: " + p.identified + "\n");
-		println("joints: " + p.jointPos[0] + "\n");
-		println("com: " + p.com + "\n");
+        println("Identified: " + p.identified);
+	println("joints: " + p.jointPos[0]);
+	println("com: " + p.com);
     }
 	
 }
@@ -362,11 +363,13 @@ float[][] joints(SimpleOpenNI context, int[] userList, PVector[][] pos){
 
 public int findPersonIdent(int camId, int personId){
     /* Returns the index if person exists in global array. Returns -1 if not found. */
-    
+    //for (cPersonIdent p : personIdents){
     for (int i=0; i<personIdents.size(); i++){
-        if (camId == personIdents.get(i).camId){
-            if (personId == personIdents.get(i).personId){
-                return i;       // Return index of object
+        for (int j=0; j<personIdents.get(i).cams.size(); j++){
+            if (camId == personIdents.get(i).cams.get(j).camId){
+                if (personId == personIdents.get(i).cams.get(j).personId){
+                    return i;       // Return index of object
+                }
             }
         }
     }
@@ -409,8 +412,7 @@ public void singlecam(){
 
         personIdent = new cPersonIdent();
 
-        personIdent.personId = userList[i];
-        personIdent.camId = 0;
+        personIdent.cams.add(0, new cLocal(0, userList[i]));   
         personIdent.com = com;
         personIdent.featDim = features[i];
         personIdent.jointPos = jointPos[i];
@@ -436,7 +438,7 @@ public void multicam(){
 
     int personId, inPerson;
     int[] userList;
-    float threshold = 400;
+    float comThresh = 400;
     float eucDist;
     float minConf;                                              // Minimum confidence
     float[][] features;
@@ -480,15 +482,16 @@ public void multicam(){
         singleCams[i] = singleCam;  
     }
 
-    // Prioritse camera according to confidence level
+    // Prioritise camera according to confidence level
     for(cSingleCam c0 : singleCams[0]){
         inPerson = findPersonIdent(0, c0.personId);
 
         // Assign default values
-        personIdent = new cPersonIdent();         // Create new object, add to global array later
-        personIdent.personId = c0.personId;
-        personIdent.camId = 0;
-        personIdent.com = c0.com;
+        personIdent = new cPersonIdent();           // Create new object, add to global array later
+
+        // Person in view of cam0 so add camId = 0 to list
+        personIdent.cams.add(0, new cLocal(0, c0.personId));                    
+        personIdent.com = c0.com;   
         personIdent.featDim = c0.featDim;
         personIdent.jointPos = c0.jointPos;
 
@@ -501,16 +504,20 @@ public void multicam(){
                 com1 = c1.com;
                 eucDist = dist(com0.x,com0.y,com0.z,com1.x,com1.y,com1.z);
 
-                if (eucDist < threshold){
+                if (eucDist < comThresh){
                     if(inPerson == -1) inPerson = findPersonIdent(1, c1.personId);
 
                     // Same person so compare confidence and add only one copy to global array
                     if(c0.featDim[12] < c1.featDim[12]){
-                        personIdent.personId = c1.personId;
-                        personIdent.camId = 1;
+                        // Confidence of cam1 higher so add camId = 1 to beginning of list
+                        personIdent.cams.add(0, new cLocal(1, c1.personId));         
                         personIdent.com = c1.com;
                         personIdent.featDim = c1.featDim;
                         personIdent.jointPos = c1.jointPos;
+                    }
+                    else {
+                        // Confidence of cam1 lower so add camId = 1 to end of list
+                        personIdent.cams.add(1, new cLocal(1, c1.personId));              
                     }
 
                     c1.personId = -1;       // Set personId=-1 to skip person
@@ -537,8 +544,7 @@ public void multicam(){
         if (c1.personId != -1){
             personIdent = new cPersonIdent();               // Create new object, add to global array later
 
-            personIdent.personId = c1.personId;
-            personIdent.camId = 1;
+            personIdent.cams.add(0, new cLocal(1, c1.personId));
             personIdent.com = c1.com;
             personIdent.featDim = c1.featDim;
             personIdent.jointPos = c1.jointPos;
@@ -745,6 +751,7 @@ public void gesture(){
 //     else if(p.com.y<800){
 //       // println("s'h'itting " + p.gpersonId);
 //      }
+
       // speed detection
      else{
         // calculate distance moved from last com of previous frame 
@@ -765,27 +772,26 @@ public void gesture(){
     }
   }
   
-  // detect gestures for one person
-  if(voluntary_start){
-    index = findLocalIdent(globalperson);  // update index of global person in global array
+    // detect gestures for one person
+    if(voluntary_start){
+        index = findLocalIdent(globalperson);  // update index of global person in global array
     
-    if(cams[personIdents.get(index).camId].isTrackingSkeleton(personIdents.get(index).personId)){    // if we are tracking the global person
+        if(cams[personIdents.get(index).cams.get(0).camId].isTrackingSkeleton(personIdents.get(index).cams.get(0).personId)){    
+            // if we are tracking the global person
+            evaluateSkeleton(personIdents.get(index).jointPos);  // call evaluate skeleton functions
+            evaluateCost();                                      // work out cost functions
 
-      evaluateSkeleton(personIdents.get(index).jointPos);  // call evaluate skeleton functions
-      evaluateCost();  // work out cost functions
-
-    // reset starting pose detected as false after 10s last gesture performed or 10 seconds after no activity
-      if(millis() - start_gesture_recog > 10000){
-        voluntary_start = false;
-        println("timeout");
-      }
+            // reset starting pose detected as false after 10s last gesture performed or 10 seconds after no activity
+            if(millis() - start_gesture_recog > 10000){
+                voluntary_start = false;
+                println("timeout");
+            }
+        }
+        else{
+            voluntary_start = false;
+            println("timeout user lost");
+        }
     }
-    else{
-      voluntary_start = false;
-      println("timeout user lost");
-    }
-
-  }
     
 }
 
@@ -923,17 +929,34 @@ public void onLostUser(SimpleOpenNI context,int userId) {
     lostUser = true;
 }
 
-public void deleteUser(){
+public int deleteUser(){
     /* Delete person from global array personIdents */
 
+    int gpersonId; 
+
     for (cPersonIdent p : personIdents){
-        if(p.personId == lostPersonId && p.camId == lostCam){
-            personIdents.remove(p);
-            break;
+        for (cLocal l : p.cams){
+            if(l.camId == lostCam && l.personId == lostPersonId){
+
+                gpersonId = p.gpersonId;
+
+                if (p.cams.size() > 1){
+                    // If more than one camera can see person then remove only 
+                    // the camera from which person is lost
+                    p.cams.remove(l);
+                } else {
+                    // If person is seen only in one camera then remove whole
+                    // person from global array
+                    personIdents.remove(p);    
+                }
+
+                return gpersonId;
+            }
         }
     }
+    
+    return -1;
 
-    lostUser = false;
 }
   
 void newUserRecieved(JSONArray recieved){
