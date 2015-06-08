@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 1;
+int numCams = 2;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -101,11 +101,11 @@ RingBuffer[] ringbuffer;  // ringbuffer to store gestures in and calculate path 
 /********************************************************************/
 
 public void setup() {
-    size(1280,480, P3D); 
+    size(640*numCams,480, P3D); 
     frameRate(25);
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     socket = new SocketIO();
-    try{socket.connect("http://172.20.10.8:3000/nodes", new IOCallback(){
+    try{socket.connect("http://129.31.210.8:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
 		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
 		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
@@ -227,8 +227,10 @@ public void draw() {
     //println("Frame:" + frameCount);
     
     // Draw depth image
-    image(cams[0].depthImage(), 0, 0);
-    //image(cams[1].depthImage(), 640, 0);
+    for (int i=0;i<numCams;i++){
+		image(cams[i].depthImage(), 640*i, 0);
+	}
+
     
     // Find confidence and prioritise camera for feature dimensions extraction
     if (numCams > 1){
@@ -891,6 +893,7 @@ public void updateTrainedGesture(){
  updateGesture = false;  // no need to update gesture again
  saveStrings("data/pose"+gestureId+".data", poseData);  // save pose data
  println("gesture data updated for gesture id " + gestureId);
+ loadData(gestureId);  // load gesture data again
  }
 }
 
