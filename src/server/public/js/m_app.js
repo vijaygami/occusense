@@ -51,7 +51,7 @@
 		});
 
 		//when the app starts, recieve all the data
-		socket.on('initial:person', function(data){
+		socket.on('update:person', function(data){
         console.log("received data from server!");
         //console.log(data);
         $scope.peopleTest = data;
@@ -93,7 +93,7 @@
 	   	}, [1500]);
 
         //update people when the data is recieved
-	   	socket.on('initial:person', function(data){
+	   	socket.on('update:person', function(data){
 	        console.log("received data from server!");
 	        //console.log(data);
 		    //people is an array of all people objects with their data
