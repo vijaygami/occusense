@@ -221,6 +221,8 @@ public void setup() {
 }
 
 public void draw() {
+    int gpersonId;
+
     // Update the cams
     SimpleOpenNI.updateAll();
     //println("Frame:" + frameCount);
@@ -245,7 +247,7 @@ public void draw() {
       // if (command from websocket = train gesture) 
       // set train_gesture as true
   
-  // Train/Track Gestures
+    // Train/Track Gestures
     gesture();  // takes globalID & gestureID
     
     updateTrainedGesture();  // saves gesture file sent from server
@@ -253,8 +255,13 @@ public void draw() {
     // If user lost, delete from global arrays here instead of in onLostUser()
     // This is due to the callback being called in the middle of other functions.
     if (lostUser){
-        deleteUser();
+        gpersonId = deleteUser();
         lostUser = false;
+
+        if (gpersonId != -1){
+            // If person lost in all cameras, update identified status to false on server
+            socket.emit("lost:person", gpersonId);
+        }
     }
 
     //debug();
@@ -278,8 +285,8 @@ public void debug(){
         //println("cams: " + Arrays.toString(p.cams));
         println("FeatDim: " + Arrays.toString(p.featDim));
         println("Identified: " + p.identified);
-	println("joints: " + p.jointPos[0]);
-	println("com: " + p.com);
+        println("joints: " + p.jointPos[0]);
+        println("com: " + p.com);
     }
 	
 }
@@ -944,19 +951,18 @@ public int deleteUser(){
                     // If more than one camera can see person then remove only 
                     // the camera from which person is lost
                     p.cams.remove(l);
+                    return -1;
                 } else {
-                    // If person is seen only in one camera then remove whole
+                    // If person is seen only in one camera and lost then remove whole
                     // person from global array
-                    personIdents.remove(p);    
+                    personIdents.remove(p);
+                    return gpersonId;
                 }
-
-                return gpersonId;
             }
         }
     }
     
     return -1;
-
 }
   
 void newUserRecieved(JSONArray recieved){
