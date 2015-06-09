@@ -225,7 +225,7 @@ public void draw() {
 
     // Update the cams
     SimpleOpenNI.updateAll();
-    //println("Frame:" + frameCount);
+    println("Frame:" + frameCount);
     
     // Draw depth image
     for (int i=0;i<numCams;i++){
@@ -264,7 +264,7 @@ public void draw() {
         }
     }
 
-    //debug();
+    debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){		
@@ -273,7 +273,8 @@ public void draw() {
 	  dataAvailable=false;
       recieved = new JSONArray();	// Clear array
     }
-
+    
+    println("\n");
     frameCount = frameCount + 1;
 }
 
@@ -282,7 +283,8 @@ public void debug(){
     println("personIdents: " + personIdents.size());
 
     for(cPersonIdent p : personIdents){
-        //println("cams: " + Arrays.toString(p.cams));
+        for (cLocal l: p.cams){ println("camId: " + l.camId + "\tperson Id: " + l.personId);}
+        //println("cams: " + p.cams);
         println("FeatDim: " + Arrays.toString(p.featDim));
         println("Identified: " + p.identified);
         println("joints: " + p.jointPos[0]);
@@ -443,8 +445,11 @@ public void singlecam(){
 public void multicam(){
     /* Fills a global array with each users' feature dimensions based on confidence of all cameras */
 
-    int personId, inPerson;
+    int personId;
+    int inPerson0 = -1;
+    int inPerson1 = -1;
     int[] userList;
+    boolean samePerson;
     float comThresh = 400;
     float eucDist;
     float minConf;                                              // Minimum confidence
@@ -473,6 +478,7 @@ public void multicam(){
             features = joints(cams[i], userList, jointPos);
             
             for(int j=0; j<userList.length; j++){
+
                 // For each user get centre of mass and confidence
 				com0 = new PVector();                               // Centre of mass 1
                 personId = userList[j];
@@ -491,7 +497,8 @@ public void multicam(){
 
     // Prioritise camera according to confidence level
     for(cSingleCam c0 : singleCams[0]){
-        inPerson = findPersonIdent(0, c0.personId);
+        samePerson = false;
+        inPerson0 = findPersonIdent(0, c0.personId);
 
         // Assign default values
         personIdent = new cPersonIdent();           // Create new object, add to global array later
@@ -511,8 +518,19 @@ public void multicam(){
                 com1 = c1.com;
                 eucDist = dist(com0.x,com0.y,com0.z,com1.x,com1.y,com1.z);
 
-                if (eucDist < comThresh){
-                    if(inPerson == -1) inPerson = findPersonIdent(1, c1.personId);
+                inPerson1 = findPersonIdent(1, c1.personId);
+
+                if (eucDist <= comThresh){
+                    // Person appears in both cameras
+                    samePerson = true;
+                }
+                else if (inPerson0 == inPerson1){
+                    // Person lost from one camera and appears in another through the overlap region
+                    samePerson = true;
+                }
+
+                if (samePerson){
+                    println("Same person \tcom0:"+com0+"\tcom1"+com1);
 
                     // Same person so compare confidence and add only one copy to global array
                     if(c0.featDim[12] < c1.featDim[12]){
@@ -533,14 +551,23 @@ public void multicam(){
             }
         }
 
-        if (inPerson != -1){
+        if (inPerson0 != -1){
             // If person already exists in global array then replace him/her
-            personIdent.gpersonId = personIdents.get(inPerson).gpersonId;
-            personIdent.guesses = personIdents.get(inPerson).guesses;
-            personIdent.identified = personIdents.get(inPerson).identified;
-            personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
-			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
-            personIdents.remove(inPerson);
+            personIdent.gpersonId = personIdents.get(inPerson0).gpersonId;
+            personIdent.guesses = personIdents.get(inPerson0).guesses;
+            personIdent.identified = personIdents.get(inPerson0).identified;
+            personIdent.guessIndex = personIdents.get(inPerson0).guessIndex;
+			personIdent.featDimMean = personIdents.get(inPerson0).featDimMean;
+            personIdents.remove(inPerson0);
+        }
+        else if (inPerson0 == -1 && inPerson1 != -1 && samePerson){
+            // If person already exists in global array then replace him/her
+            personIdent.gpersonId = personIdents.get(inPerson1).gpersonId;
+            personIdent.guesses = personIdents.get(inPerson1).guesses;
+            personIdent.identified = personIdents.get(inPerson1).identified;
+            personIdent.guessIndex = personIdents.get(inPerson1).guessIndex;
+            personIdent.featDimMean = personIdents.get(inPerson1).featDimMean;
+            personIdents.remove(inPerson1);
         }
 
         personIdents.add(personIdent);      // Add object to global array
@@ -556,17 +583,17 @@ public void multicam(){
             personIdent.featDim = c1.featDim;
             personIdent.jointPos = c1.jointPos;
 
-            inPerson = findPersonIdent(1, c1.personId);     // Check if person already exists in personIdents
+            inPerson1 = findPersonIdent(1, c1.personId);     // Check if person already exists in personIdents
 
-            if (inPerson != -1){
+            if (inPerson1 != -1){
                 // If person already exists in global array then replace him/her
-                personIdent.gpersonId = personIdents.get(inPerson).gpersonId;
-                personIdent.guesses = personIdents.get(inPerson).guesses;
-                personIdent.identified = personIdents.get(inPerson).identified;
-                personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
-				personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
+                personIdent.gpersonId = personIdents.get(inPerson1).gpersonId;
+                personIdent.guesses = personIdents.get(inPerson1).guesses;
+                personIdent.identified = personIdents.get(inPerson1).identified;
+                personIdent.guessIndex = personIdents.get(inPerson1).guessIndex;
+				personIdent.featDimMean = personIdents.get(inPerson1).featDimMean;
 
-                personIdents.remove(inPerson);
+                personIdents.remove(inPerson1);
             }
 
             personIdents.add(personIdent);                  // Add object to global array
