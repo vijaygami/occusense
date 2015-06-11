@@ -29,8 +29,8 @@ var appSchema = new mongoose.Schema({
 var personSchema = new mongoose.Schema({
 	personID: Number,
 	personName: String,
-	//bodypartDim: [Number],
 	roomID: Number,
+	NodeID: String,
 	coord:{
 		x: Number,
 		y: Number,
@@ -41,23 +41,22 @@ var personSchema = new mongoose.Schema({
 	gesList: [{gesName: String, gesTime: { type : Date, default: Date.now }}],
 	actList: [{actName: String, actTime: { type : Date, default: Date.now }}],
 	joints: {
-		head:{x: Number, y: Number, z: Number},
-		neck:{x: Number, y: Number, z: Number},
-		leftshoulder:{x: Number, y: Number, z: Number},
-		rightshoulder:{x: Number, y: Number, z: Number},
-		lefthip:{x: Number, y: Number, z: Number},
-		righthip:{x: Number, y: Number, z: Number},
-		leftknee:{x: Number, y: Number, z: Number},
-		rightknee:{x: Number, y: Number, z: Number},
-		torso:{x: Number, y: Number, z: Number},
-		rightelbow:{x: Number, y: Number, z: Number},
-		leftelbow:{x: Number, y: Number, z: Number},
-		righthand:{x: Number, y: Number, z: Number},
-		lefthand:{x: Number, y: Number, z: Number},
-		leftfoot:{x: Number, y: Number, z: Number},
-		rightfoot:{x: Number, y: Number, z: Number}
-			},
-	gesture:{occuring: Boolean, ID: Number}
+		head: 			{x: Number, y: Number, z: Number},
+		neck: 			{x: Number, y: Number, z: Number},
+		leftshoulder: 	{x: Number, y: Number, z: Number},
+		rightshoulder: 	{x: Number, y: Number, z: Number},
+		lefthip: 		{x: Number, y: Number, z: Number},
+		righthip: 		{x: Number, y: Number, z: Number},
+		leftknee: 		{x: Number, y: Number, z: Number},
+		rightknee: 		{x: Number, y: Number, z: Number},
+		torso: 			{x: Number, y: Number, z: Number},
+		rightelbow: 	{x: Number, y: Number, z: Number},
+		leftelbow: 		{x: Number, y: Number, z: Number},
+		righthand: 		{x: Number, y: Number, z: Number},
+		lefthand: 		{x: Number, y: Number, z: Number},
+		leftfoot: 		{x: Number, y: Number, z: Number},
+		rightfoot: 		{x: Number, y: Number, z: Number}
+	}
 })
 
 var Room = mongoose.model('Room', roomSchema);
@@ -71,10 +70,10 @@ exports.Person = Person;
 
 //Adding new person documents for testing purposes only
 var p1 = new Person({
-	personID: 8, 
-	personName: "Alex",
+	personID: 7, 
+	personName: "Pei",
 	roomID: 1,
-	coord: {x:500, y:300, z:2},
+	coord: {x:100, y:200, z:20},
 	identified: true,
 	activity: 'still',
 	joints: {
@@ -97,14 +96,13 @@ var p1 = new Person({
 	gesture:{occuring: true, ID: 1}
 })
 
-/*
-p1.save(function(err){
-	if (err){
-		return err;
-	} else {
-		console.log('Saved ' + p1.personName);
-	}
+// p1.save(function(err){
+// 	if (err){
+// 		return err;
+// 	} else {
+// 		console.log('Saved ' + p1.personName);
+// 	}
 
-})
-*/
+// })
+
 
