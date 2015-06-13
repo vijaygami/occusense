@@ -231,6 +231,9 @@ public void draw() {
     for (int i=0;i<numCams;i++){
 		image(cams[i].depthImage(), 640*i, 0);
 	}
+	
+	textSize(20);
+	text(frameRate, 20, 40);		// Displays frame rate on screen
 
     
     // Find confidence and prioritise camera for feature dimensions extraction

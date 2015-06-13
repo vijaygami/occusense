@@ -3,3 +3,9 @@
 
 # Ignore all node modules
 src/server/node_modules/
+src/sensor/collect_data/collect_data.pde
+src/sensor/collect_data/sketch.properties
+src/sensor/collect_data/usercoordsys.txt
+src/sensor/collect_data/OtherFunctions.pde
+src/sensor/comTest/comTest.pde
+src/sensor/comTest/usercoordsys.txt
