@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 2;
+int numCams = 1;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -1072,3 +1072,16 @@ void sendJoints(){
 	
 }
 
+void keyPressed(){
+	if (key != CODED){
+		switch(key){
+			case 'u':
+				println("Updating RF model from text files");
+				findmodel();
+				savemodel();
+				println("Model saved");
+			break;
+		}
+	}
+	
+}
