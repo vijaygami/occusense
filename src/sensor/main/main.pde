@@ -611,7 +611,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 5000;
+    float mseThresh = 200;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
