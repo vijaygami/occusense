@@ -52,7 +52,7 @@ color[]      userClr = new color[]{ color(255,0,0),
                                    };
 String[] names;
 String username = "";
-String forestfile = "C:/Users/Vijay/Documents/GitHub/occusense/src/sensor/RFwithSensor/model.xml";	//change
+String forestfile;	//change
 // Recording data to train  RF
 ArrayList<String> textdata = new ArrayList<String>();
 ArrayList<String> usertextdata = new ArrayList<String>();  // Contains names
@@ -62,17 +62,18 @@ Robot robot;
 int mm = 0;                                   //time index p laceholder for robot
 boolean togglerobot,togglesave,togglefalldetection;  
 int savecounter = 0;
-int savesize = 150;
+int savesize = 200; 
 String ipaddress = "1212http://192.168.173.1:52233/";   
 boolean onsent,offsent; 
 int idcount = 10;
-int[][] idguess =   new int[20][idcount+1];     //UserID-1 & Names guessed by re-identification. Last array element is also used to determine if user has been confirmed
-boolean[] idused = new boolean[20]; 
-int[] counts = new int[5];
+int[][] idguess =   new int[50][idcount+1];     //UserID-1 & Names guessed by re-identification. Last array element is also used to determine if user has been confirmed
+boolean[] idused = new boolean[50]; 
+int[] counts = new int[50];
 
 void setup()
 { 
   size(1024,640,P3D);  // strange, get drawing error in the cameraFrustum if i use P3D, in opengl there is no problem
+  forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
   context = new SimpleOpenNI(this);
   if(context.isInit() == false)
   {
@@ -106,12 +107,8 @@ void setup()
     catch(AWTException e){
       println(e);
     }
-  mm = millis();
   OpenCV opencv = new OpenCV(this, "test.jpg");
   forest = new CvRTrees();
-//  println("updating model");
-//  findmodel();
-//1        savemodel(); 
   forest.load(forestfile);  
 }
 
@@ -130,7 +127,7 @@ void draw()
   
   int[]   depthMap = context.depthMap();
   int[]   userMap = context.userMap();
-  int     steps   = 10;  // to speed up the drawing, draw every third point
+  int     steps   = 20;  // to speed up the drawing, draw every third point
   int     index;
   PVector realWorldPoint;
 
@@ -189,20 +186,18 @@ void draw()
   
 
 
-  if(millis()-mm>10){ // 50ms between presses
+
     if(togglesave){
       robot.keyPress('1'); 
       robot.keyRelease('1');
-//      robot.keyPress('2'); 
-//      robot.keyRelease('2');
+
     }else if(togglerobot){
       robot.keyPress(' ');
       robot.keyRelease(' ');
-//      robot.keyPress('0');
-//      robot.keyRelease('0');
+
     }
-    mm = millis();
-  }
+
+
 }
 
 // -----------------------------------------------------------------
@@ -309,7 +304,8 @@ void keyPressed()
           
 			//cross check
 			float mse = MSE(lookupMean (idguessindex[ii]-1 , personMeans), Arrays.copyOfRange(unidentified[i], 0, 12));  
-			println("MSE");
+		
+                        println("MSE");
 			println(mse);
            
 			if((mse < 550)){	  
@@ -341,8 +337,14 @@ void keyPressed()
   
     break;                                                                                                                                         
 //-----------------SAVE USER FEATURES, ADD NAME (TBC: AVERAGING, NAME INPUT)-----------------------------
-    case '1':if(context.isTrackingSkeleton(1)&&minConfidence[0]==1)saveUser(unidentified[0]);
-    break;
+    case '1':if(context.isTrackingSkeleton(1)&&minConfidence[0]==1)saveUser(unidentified[0]); break;
+    case 'u': {
+      println("updating model");
+      findmodel(); 
+      savemodel();
+      forest.load(forestfile);  
+      } 
+break;
   }
     
   switch(keyCode)
