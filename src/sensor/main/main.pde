@@ -115,7 +115,7 @@ public void setup() {
 		public void on(String event, IOAcknowledge ack, Object... args) {
 
 		  if(event.equals("res_new_ID")){
-			requestedID=(Integer)args[0];      // Set the global ID
+			requestedID=(Integer)args[0];      // Set the global ID 
 		  }
 		  
 		  if(event.equals("res_data")){
@@ -281,6 +281,7 @@ public void draw() {
     
    // println("\n");
    // frameCount = frameCount + 1;
+   sendJoints();
 }
 
 public void debug(){
@@ -613,7 +614,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 5000;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 200;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -648,7 +649,7 @@ public void identify(){
                     // Find MSE (mean squared error) between mean of guessed user and mean of last 20 frames 
                     mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), p.featDimMean);
 
-                    //println("MSE: " + mse);
+                    println("MSE: " + mse);
 
                     if (mse < mseThresh){
                         // Person succesfully identified
@@ -662,7 +663,7 @@ public void identify(){
                         // New user identified. Request new global person ID from server
                         println("New user detected, requested unique ID");
 						socket.emit("req_new_ID");
-                        while (requestedID == 0){}    	// Wait here while ID arrives (Server returns a non zero ID)
+                        while ((int)requestedID == 0){ println(" "); }    	// Wait here while ID arrives (Server returns a non zero ID)
                         p.gpersonId = (int)requestedID;
                         println("Received ID: " + requestedID);
                         requestedID = 0;	      		// Set to zero so stay in while loop		
