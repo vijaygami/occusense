@@ -247,7 +247,7 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			if (err){
 				console.error(err);
 			} else {
-				console.log('Person lost: ' + doc.personName);
+				console.log(doc.personName + ' lost with id: ' + doc.personID);
 				doc.identified = false;		// Update status
 				doc.save();					// Save document in db
 			}
@@ -263,7 +263,7 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			if (err){
 				console.error(err);
 			} else {
-				console.log('Person identified: ' + doc.personName);
+				console.log(doc.personName + ' identified with id: ' + doc.personID);
 				doc.identified = true;		// Update status
 				doc.save();					// Save document in db				
 			}
@@ -293,15 +293,68 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 				doc.COM[0].cy = data[k].COM[1];
 				doc.COM[0].cz = data[k].COM[2];
 				
-				for(j = 0; j < 15; j++){
+				//update jointPosition
+				doc.joints.head.x = data[k].joint[0][0];
+				doc.joints.head.y = data[k].joint[0][1];
+				doc.joints.head.z = data[k].joint[0][2];
 
-					//update jointPosition
-					doc.jointPosition[j].cx = data[k].joint[j][0];
-					doc.jointPosition[j].cy = data[k].joint[j][1];
-					doc.jointPosition[j].cz = data[k].joint[j][2];
-				}
-    			
-    		 	doc.save();
+				doc.joints.neck.x = data[k].joint[1][0];
+				doc.joints.neck.y = data[k].joint[1][1];
+				doc.joints.neck.z = data[k].joint[1][2];
+
+				doc.joints.leftshoulder.x = data[k].joint[2][0];
+				doc.joints.leftshoulder.y = data[k].joint[2][1];
+				doc.joints.leftshoulder.z = data[k].joint[2][2];
+
+				doc.joints.rightshoulder.x = data[k].joint[3][0];
+				doc.joints.rightshoulder.y = data[k].joint[3][1];
+				doc.joints.rightshoulder.z = data[k].joint[3][2];
+				
+				doc.joints.lefthip.x = data[k].joint[4][0];
+				doc.joints.lefthip.y = data[k].joint[4][1];
+				doc.joints.lefthip.z = data[k].joint[4][2];
+
+				doc.joints.righthip.x = data[k].joint[5][0];
+				doc.joints.righthip.y = data[k].joint[5][1];
+				doc.joints.righthip.z = data[k].joint[5][2];
+
+				doc.joints.leftknee.x = data[k].joint[6][0];
+				doc.joints.leftknee.y = data[k].joint[6][1];
+				doc.joints.leftknee.z = data[k].joint[6][2];
+																								
+				doc.joints.rightknee.x = data[k].joint[7][0];
+				doc.joints.rightknee.y = data[k].joint[7][1];
+				doc.joints.rightknee.z = data[k].joint[7][2];
+
+				doc.joints.rightelbow.x = data[k].joint[8][0];
+				doc.joints.rightelbow.y = data[k].joint[8][1];
+				doc.joints.rightelbow.z = data[k].joint[8][2];  
+
+				doc.joints.leftelbow.x = data[k].joint[9][0];
+				doc.joints.leftelbow.y = data[k].joint[9][1];
+				doc.joints.leftelbow.z = data[k].joint[9][2];
+
+				doc.joints.righthand.x = data[k].joint[10][0];
+				doc.joints.righthand.y = data[k].joint[10][1];
+				doc.joints.righthand.z = data[k].joint[10][2];
+
+				doc.joints.lefthand.x = data[k].joint[11][0];
+				doc.joints.lefthand.y = data[k].joint[11][1];
+				doc.joints.lefthand.z = data[k].joint[11][2];
+
+				doc.joints.torso.x = data[k].joint[12][0];
+				doc.joints.torso.y = data[k].joint[12][1];
+				doc.joints.torso.z = data[k].joint[12][2];
+
+				doc.joints.leftfoot.x = data[k].joint[13][0];
+				doc.joints.leftfoot.y = data[k].joint[13][1];
+				doc.joints.leftfoot.z = data[k].joint[13][2];				
+				
+				doc.joints.rightfoot.x = data[k].joint[14][0];
+				doc.joints.rightfoot.y = data[k].joint[14][1];
+				doc.joints.rightfoot.z = data[k].joint[14][2];					
+
+				doc.save();
 
     		 	console.log(doc);
     		});
