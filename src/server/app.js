@@ -238,16 +238,35 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 	});
 
-	//person identified, update database
-	socket.on('identified',function(data){
 
-		console.log('id: ' + data);
+	// Person lost from view of all cameras so update identified field in db
+	socket.on("lost:person",function(data){
 
 		var Person = mongoose.model('Person');
 		Person.findOne({personID: data},function(err,doc){
-			var name = doc.personName;
-			console.log('person identified ' + name);
-			doc.identified = true;
+			if (err){
+				console.error(err);
+			} else {
+				console.log('Person lost: ' + doc.personName);
+				doc.identified = false;		// Update status
+				doc.save();					// Save document in db
+			}
+		});
+	});
+	
+
+	// Person identified and in view of atleast one camera
+	socket.on('identified',function(data){
+
+		var Person = mongoose.model('Person');
+		Person.findOne({personID: data},function(err,doc){
+			if (err){
+				console.error(err);
+			} else {
+				console.log('Person identified: ' + doc.personName);
+				doc.identified = true;		// Update status
+				doc.save();					// Save document in db				
+			}
 		});
 	});
 

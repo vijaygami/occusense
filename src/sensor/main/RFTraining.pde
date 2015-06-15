@@ -95,7 +95,7 @@ void findmodel(){
 		}	
       }
       resultaccuracy = (float) correctAnswers*100/(trainingData.getRowCount()/2);
-      println("cross valid acc is: " + resultaccuracy);
+      //println("cross valid acc is: " + resultaccuracy);
     	
 	//save parameters if model is good
     if(resultaccuracy>bestaccuracy){		
