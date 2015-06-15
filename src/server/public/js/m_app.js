@@ -1,22 +1,9 @@
 (function(){
 	//initialise main app. include angoose client
-	var m_app=angular.module('m_app', []);
-
-
-	//service to store people data
-	/*
-	m_app.factory('persons', function(){
-		//data object that the dependencies of the service recieves
-		var persons={};
-
-		//where we store the data. people is a variable stored below
-		persons.list = people;
-
-		return persons;
-	});*/
+	var m_app=angular.module('m_app', []);	
 
 	//service to include scope in socket.on and .emit
-	m_app.factory('socket', function($rootScope){
+	/*m_app.factory('socket', function($rootScope){
 		var socket = io.connect('http://localhost:3000/webApp');
 		
 		return {
@@ -39,35 +26,12 @@
 		        })
 		    }
 		};
-	});
-
-	//test controller for reading from database
-	m_app.controller('TestController', function($scope, socket){
-
-		socket.on('insert:person', function(data){
-		    console.log("received update from server");
-		    console.log(data);
-			$scope.pName = data.personName;
-		});
-
-		//when the app starts, recieve all the data
-		socket.on('update:person', function(data){
-        console.log("received data from server!");
-        //console.log(data);
-        $scope.peopleTest = data;
-    	});
-
-
-	});
+	});*/
 	
 	//controller for list of data
-	m_app.controller('ListController', function($scope, $interval, socket){ //include scope dependency
-
-		//create dummy people
-		//$scope.persons = people;
-		//var self = this;
-
+	m_app.controller('ListController', function($scope, $interval){ //include scope dependency
 		//self.persons = persons.list;
+		var socket = io.connect('http://localhost:3000/webApp');
 
 		$scope.colours = [
 					{colour: "#9be466", used: false, ID: 0},
@@ -100,8 +64,100 @@
 		    $scope.people = data;
 	    });
 	   	
+	});
 
-		//$scope.count = n_people;
+	//profile controller. functions to call socket to change name etc
+	m_app.controller('ProfileController', function(){
+		//variable to take new name
+		this.newName = "";
+
+		this.newColour = "";
+
+		//variable to store selected user
+		this.selectedID="";
+
+		//when we click view activities on a user, set selected attributes for using in the timeline creation directive
+		//ges_data takes the gesture history of the user in format [{name, time}, ..., ...]
+		this.load_timeline=function(userName, ges_data){
+			//first set the username to display in the modal
+			this.selectedName=userName;
+
+			//set dom element
+			var dom_element= "timeline_display";
+
+			// DOM element where the Timeline will be attached
+			var container = document.getElementById(dom_element);
+
+			//be sure to clear the display every time we re load
+			while (container.hasChildNodes()) {
+			    container.removeChild(container.lastChild);
+			}
+
+			// Create a DataSet (allows two way data-binding).
+			var items = new vis.DataSet([
+			  {id: 1, content: 'item 1', start: '2013-04-20'},
+			  {id: 2, content: 'item 2', start: '2013-04-14'},
+			  {id: 3, content: 'item 3', start: '2013-04-18'},
+			  {id: 4, content: 'item 4', start: '2013-04-16', end: '2013-04-19'},
+			  {id: 5, content: 'item 5', start: '2013-04-25'},
+			  {id: 6, content: 'item 6', start: '2013-04-27'}
+			]);
+
+			// Configuration for the Timeline
+			//eventually ensure it only displays daily data
+			var options = {};
+
+
+			// Create a Timeline
+			var timeline = new vis.Timeline(container, items, options);
+		};
+		
+		//when function called, it emits new name and user ID through a socket to be changed in database
+		this.namechange = function(newName, currentName, userID){
+
+			//INSERT SOCKET INFO only if the name has acutally been changed
+			if(newName != currentName){
+				console.log(newName + " " + userID);
+
+			}
+			
+
+			//reset newName
+			this.newName = "";
+		};
+
+		//sets colour of each person on profile page
+		this.findcol = function(userID, col_array){
+			//console.log("test");
+			for(var i=0; i<col_array.length;i++){
+				if(userID == col_array[i].ID){
+					document.getElementById("circle"+userID).setAttribute("fill", col_array[i].colour);
+				}
+			}
+		};
+
+		//set this.newColour to users current colour when we choose to edit a user
+		this.findlocalcol = function(userID, col_array){
+			for(var i=0; i<col_array.length;i++){
+				if(userID == col_array[i].ID){
+					this.newColour = col_array[i].colour;
+				}
+			}
+		};
+
+		//change the colour of each person on profile page
+		this.changecol = function(userID, col_array){
+
+			for(var i=0; i<col_array.length;i++){
+
+				if(userID == col_array[i].ID){
+
+					col_array[i].colour = this.newColour;
+
+				}
+			}
+		};
+
 	});
 
 	//controller for the different tabs
@@ -134,22 +190,30 @@
 	});
 
 	//controller for training gestures
-	m_app.controller('GestureController', function(){
-
+	m_app.controller('GestureController', function($interval, $timeout, $scope){
+		var timers;
 		//the ID of the person to perform the gesture
 		this.operator = 0;
 
 		//the ID of the gesture to change
 		this.gestureID = 0;
 
-		//Gesture name
-		this.gestureName = "";
-
 		//index of the person that is training it
 		this.index = 0;
 
 		//name of person training
 		this.name ="";
+
+		$scope.timer_array = ["Initialising...", "3", "2", "1", "Train!", "3", "2", "1"];
+
+		//numbers variable for timer
+		$scope.timer_num = " ";
+
+		//commands/info for timer
+		$scope.timer_holder=" ";
+
+		//boolean to display saved confirmation
+		$scope.saved_bool = false;
 
 		this.test=0;
 
@@ -163,6 +227,12 @@
 			//set name of person training
 			this.name = persons[this.index].personName;
 
+			//ensure saved is set to false
+			$scope.saved_bool=false;
+
+			//ensure the timer variables are reset each time we click (in case we abort a training)
+			$scope.timer_holder="";
+			$scope.timer_num="";
 
 			//INSERT SOCKET COMMS TO SERVER HERE
 			socket.emit("ges_change", "test");
@@ -170,6 +240,31 @@
 				console.log(msg);
 			});
 		};
+
+		this.timer = function(){
+			
+			//queue the timer indicators
+			timers = $timeout(function(){$scope.timer_holder="Initialising...";}, 1000);
+			timers = $timeout(function(){$scope.timer_num="3";}, 2000);
+			timers = $timeout(function(){$scope.timer_num="2";}, 3000);
+			timers = $timeout(function(){$scope.timer_num="1";}, 4000);
+			timers = $timeout(function(){$scope.timer_num=" ";}, 5000);
+			timers = $timeout(function(){$scope.timer_holder="Begin Training!";}, 5000);
+			timers = $timeout(function(){$scope.timer_num="3";}, 6000);
+			timers = $timeout(function(){$scope.timer_num="2";}, 7000);
+			timers = $timeout(function(){$scope.timer_num="1";}, 8000);
+			timers = $timeout(function(){$scope.timer_num="0";}, 9000);
+			timers = $timeout(function(){$scope.timer_num=" ";}, 10000);
+			timers = $timeout(function(){$scope.timer_holder="Saving...";}, 10000);
+			timers = $timeout(function(){$scope.saved_bool="true";}, 13000);
+			timers = $timeout(function(){$scope.saved_bool="false";}, 16000);
+		};
+
+		//function to cancel timeouts and reset variables if we cancel the training/start a new one
+		this.cancel = function(){
+
+		};
+
 	});
 
 	m_app.controller('TrainingController', function(){
@@ -185,6 +280,44 @@
 
 
 	});
+
+	//directive to load the timeline per person
+	/*m_app.directive('activityTimeline', function(){
+		return{
+			restrict: 'AEC',
+			scope: {'personActivities': '=', 'uid': '=', 'peopleInfo': '='}, //pass the gesList and the div element ID where we want the timeline to go
+			link: function(scope, element, attrs){
+
+				//set dom element
+				var dom_element= "timeline_display";
+
+				// DOM element where the Timeline will be attached
+				var container = document.getElementById(dom_element);
+
+				var test=scope.uid;
+				console.log(test);
+
+				// Create a DataSet (allows two way data-binding)
+				var items = new vis.DataSet([
+				  {id: 1, content: 'item 1'+test, start: '2013-04-20'},
+				  {id: 2, content: 'item 2', start: '2013-04-14'},
+				  {id: 3, content: 'item 3', start: '2013-04-18'},
+				  {id: 4, content: 'item 4', start: '2013-04-16', end: '2013-04-19'},
+				  {id: 5, content: 'item 5', start: '2013-04-25'},
+				  {id: 6, content: 'item 6', start: '2013-04-27'}
+				]);
+
+				// Configuration for the Timeline
+				var options = {};
+
+
+				// Create a Timeline
+				var timeline = new vis.Timeline(container, items, options);
+
+			}
+		}
+
+	});*/
 
 	//directive to set up and draw the joint map of a selectable person
 	m_app.directive('jointCanvas', function(){
@@ -423,6 +556,9 @@
 						//variable to handle the case where p_array object is no longer in the database
 						var found = false;
 
+						//change the colour if needed
+						changed_colour(p_array, i, p_array[i].id);
+
 						
 						//compare current objects to database peopleInfo
 						angular.forEach(scope.peopleInfo, function(value, key){
@@ -481,42 +617,60 @@
 
 						//if the element in peopleInfo is not in p_array but is now newly identified, make a circle of it
 						if(value.identified && !exists){
+
+							//create container
+							var container = new createjs.Container();
+
 							//create shape object
 							var circle = new createjs.Shape();
+
+							//create text label object
+							var label = new createjs.Text(value.personName);
 
 							//call function to find next available colour and return it
 							var avail_colour=find_colour(key);
 
-							//find the next unused colour
-							/*for(var j=0;j<col_array.length;j++){
-								//if the colour is not being used, save its index
-								if(!col_array[j].used){ci=j; break;}
-							}*/
-
 							//draw circle and assign available colour found
 							circle.graphics.beginFill(avail_colour).drawCircle(0, 0, 15);
-
-							//update col_array attributes
-							/*col_array[ci].used = true;
-							col_array[ci].ID = value.personID;*/
+							circle.color=avail_colour;
 
 							//set object attributes. name color ID co-ordinates identified or not
-							circle.name =value.personName;
+							/*circle.name =value.personName;
 							circle.id = value.personID;
 							circle.color = avail_colour;
 							circle.x = value.coord.x; 
 							circle.y = value.coord.y;
-							circle.identified = value.identified;
+							circle.identified = value.identified;*/
 
-							//push the shape into p_array
-							p_array.push(circle);
+							//set text label attributes
+							//label = value.personName;
+							label.x =0;
+							label.y=0;
+							label.textAlign = "center";
+							label.textBaseline = "middle";
+							console.log(label.text);
+
+							//add circle to container
+							container.addChild(circle, label);
+
+							//set container attributes
+							container.name =value.personName;
+							container.id = value.personID;
+							container.color = avail_colour;
+							container.x = value.coord.x; 
+							container.y = value.coord.y;
+							container.identified = value.identified;
+
+
+							//push the container and label into p_array
+							p_array.push(container);
 						
-							//add circle to stage and update
-							stage.addChild(circle); 
+							//add container to stage and update
+							stage.addChild(container); 
 							stage.update();	
 
 							//set mouse event handler for mouse click to display the info (doesnt live update yet)
-							circle.on("mouseover", function(){
+							container.on("mouseover", function(){
 							display_info.text = "ID: " +value.personID+"\nName: "+value.personName+"\nActivity: "+value.activity+"\nx: "+value.coord.x;
 							
 							//stage.addChild(display_info); 
@@ -562,22 +716,46 @@
 						stage.update();
 				};
 
+				//find the next unused colour
 				function find_colour(current_person){
 					
 
 					//find the next unused colour
 					for(var j=0;j<scope.col_array.length;j++){
 						//if the colour is not being used, quit loop. its index is j
-						if(!scope.col_array[j].used){break;}
+						if(!scope.col_array[j].used){
+							//update col_array attributes. use the current_person argument to set whos using that colour
+							scope.col_array[j].used = true;
+							scope.col_array[j].ID = scope.peopleInfo[current_person].personID;
+							//return the colour
+							return scope.col_array[j].colour;
+							break;
+						}
 					}
 
-					//update col_array attributes. use the current_person argument to set whos using that colour
-					scope.col_array[j].used = true;
-					scope.col_array[j].ID = scope.peopleInfo[current_person].personID;
-
-					//return the colour
-					return scope.col_array[j].colour;
+					//if the loop exits, a colour has not been found. return black
+					return "black";
 				};
+
+				//detect if the user has changed their preferred colour
+				function changed_colour(containers, index, userID){
+
+					for(var i=0;i<scope.col_array.length; i++){
+						if(userID == scope.col_array[i].ID){
+							//if the colour has changed
+							if(containers[index].color != scope.col_array[i].colour){
+								//remove everything from container
+								containers[index].removeAllChildren();
+								//delete from p_array
+								containers.splice(index, 1);
+								//set to unused NOTE: this relies on a new user not being added at the same time as changing a colour (bad bug but oh well)
+								scope.col_array[i].used = false;
+
+
+							}
+						}
+					}
+				}
 			}
 		};
 

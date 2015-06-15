@@ -3,6 +3,7 @@
 
 <head>
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />    <!-- link dependancies-->
+  <link href="css/vis.min.css" rel="stylesheet" type="text/css" />
 </head>
 
 <div class="page-header">
@@ -14,6 +15,13 @@
 <!-- include ListController, with scope injected-->
 <body ng-controller="ListController">
 
+  <!-- DO NOT REMOVE OR EARTH EXPLODES -->
+  <script src="js/vis.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io.connect('http://localhost:3000/webApp');
+  </script>
+
     <section ng-controller ="PanelController as panel">
       <!-- make the tabs -->
       <!--choose class of tabs -->
@@ -22,7 +30,7 @@
           ng-click calls the controller which sets tab to 1 2 or 3
           use ng class to keep the selected tab highlighted. it returns true when 1 2 or 3 is selected-->
           <li ng-class="{ active: panel.isSelected(1)}"> <a href ng-click="panel.selectTab(1)">Home</a></li> 
-          <li ng-class="{ active: panel.isSelected(2)}"> <a href ng-click="panel.selectTab(2)">Training Centre</a></li>
+          <li ng-class="{ active: panel.isSelected(2)}"> <a href ng-click="panel.selectTab(2)">Gesture Centre</a></li>
           <li ng-class="{ active: panel.isSelected(3)}"> <a href ng-click="panel.selectTab(3)">History</a></li>
           <li ng-class="{ active: panel.isSelected(4)}"> <a href ng-click="panel.selectTab(4)">User Profiles</a></li>
         </ul>
@@ -157,12 +165,14 @@
                     </div>
                   </form> 
 
+                  <p>You will be given 3 seconds to prepare, and 3 seconds to train the gesture</p>
+
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
 
                   <!-- set the train button up to request the training and also display joint modal -->
-                  <button ng-click="gesCtrl.request(people)" type="button" data-dismiss="modal" class="btn btn-primary" data-toggle="modal" data-target="#train_screen">Train</button>
+                  <button ng-click="gesCtrl.request(people); gesCtrl.timer()" type="button" data-dismiss="modal" class="btn btn-primary" data-toggle="modal" data-target="#train_screen">Train</button>
                 </div>
               </div>
             </div>
@@ -181,15 +191,34 @@
               <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
               <h4 class="modal-title" id="myModalLabel">{{gesCtrl.name}} is training a gesture</h4>
             </div>
-            <div class="modal-body" id="train_display">
+            <div class="modal-body">
 
               <!-- display joint canvas in the modals body -->
-              <joint-canvas selected="gesCtrl.index" peoples="people" cols="colours" element="'train_display'"></joint-canvas>
+              <div id="train_display">
+                <joint-canvas selected="gesCtrl.index" peoples="people" cols="colours" element="'train_display'"></joint-canvas>
+              </div>
+              <!-- display a countdown timer. 3 seconds to prepare, 3 to perform -->
+              <p>{{timer_holder}}</p>
+              <p>{{timer_num}}</p>
+
 
             </div>
+            
+            <!--confirmation modal for trained gesture -->
+            <div class="alert alert-success fade in" ng-show="saved_bool">
+              <strong>Gesture training successful</strong>
+              <p>
+                Please close to continue
+                <button type="button" class="btn btn-default pull-right" data-dismiss="modal" ng-show="saved_bool">Close</button>
+              </p>
+
+            </div>
+            
           </div>
         </div>
       </div>
+
+      
 
       <!-- button and modal to add a new gesture -->
       <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#add_modal">New Gesture</button>
@@ -268,20 +297,109 @@
     <div><label>View gesture/activity history</label></div>
   </div>
 
-  <!-- User Profile Section -->
+  <!-- User Profile Section-->
   <div ng-show="panel.isSelected(4)">
     <div><label>Edit user profiles</label></div>
 
-    <div class="panel panel-default">
+    <div class="panel panel-default" ng-controller="ProfileController as profile">
       <ul class="list-group">
-        <li class="list-group-item" ng-repeat="person in people">
+        <li class="list-group-item" ng-repeat="person in people track by person.personName">
+          {{profile.findcol(person.personID, colours)}}
+          <svg height="40" width="40" >
+            <circle id="circle{{person.personID}}" cx="20" cy="24" r="15" stroke="black" stroke-width="1"/>
+          </svg>
+
           <label>Name:</label> {{person.personName}}
-          <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#editname_modal">Edit</button>
+
+          <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#edit_modal{{person.personID}}" ng-click="profile.newName = person.personName; profile.findlocalcol(person.personID, colours)">Edit</button>
+          <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#activity_modal" ng-click="profile.load_timeline(person.personName, person.gesList)">Activity</button>
+
+          <!-- modal for edit user-->
+          <div class="modal fade" id="edit_modal{{person.personID}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  <h4 class="modal-title" id="myModalLabel">Edit User: {{person.personName}}</h4>
+                </div>
+                <div class="modal-body">
+
+                <form>
+                  <div class="form-group">
+                    <label for="recipient-name" class="control-label">Enter new name</label>
+                      <input type="text" class="form-control" ng-model="profile.newName" required="string">
+                  </div>
+
+                  <div class="form-group">
+                    <label class="control-label">Choose a new colour</label> (e.g. orange, #000000 etc)
+                      <input type="text" class="form-control" ng-model="profile.newColour" required="string" style="border:2px solid {{profile.newColour}}">
+                  </div>
+
+                </form>              
+
+
+
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-primary" ng-click="profile.namechange(profile.newName, person.personName, person.personID); profile.changecol(person.personID, colours)" data-dismiss="modal" data-dismiss="modal" data-toggle="modal" data-target="#edituser_success">Save</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
 
         </li>
       </ul>
+
+      <!-- modal for user activity -->
+      <div class="modal fade" id="activity_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="myModalLabel">User Activity: {{profile.selectedName}}</h4>
+            </div>
+            <div class="modal-body">
+
+              <div id="timeline_display"></div>
+              
+              <!--<activity-timeline personActivities="0" uid="profile.selectedID"></activity-timeline>-->
+              
+
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default dropdown-toggle pull-left" data-toggle="dropdown" aria-expanded="false">
+                <label class="control-label">Load from Log</label>
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu" role="menu">
+                <li><a href="#">18/06/2015</a></li>
+                <li><a href="#">17/06/2015</a></li>
+                <li><a href="#">16/06/2015</a></li>
+                <li><a href="#">15/06/2015</a></li>
+                <li><a href="#">14/06/2015</a></li>
+              </ul>
+              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
+      <!--alert modal for saved user settings confirmation -->
+      <div class="modal fade" id="edituser_success">
+        <a href="#" class="close" data-dismiss="modal">&times;</a>
+        <div class="alert alert-success fade in">
+              
+          <strong>Success:</strong> User settings saved
+          <button type="button" class="btn btn-default pull-right" data-dismiss="modal">Close</button>
+
+        </div>
+      </div>
+
+    </div>
 
   </div>
 
@@ -294,13 +412,17 @@
     </div>
   </div>
 
+  <!-- test the history -->
+  <div id="visualization"></div>
+
   
 
 
   </section>
 
 	<!-- run angular, controller etc scripts-->
-  <script src="/socket.io/socket.io.js"></script>
+  
+  
 	<script type="text/javascript" src="js/angular.min.js"></script> <!-- link angular-->
 	<script type="text/javascript" src="js/m_app.js"></script> <!--link app object-->
 	<script src="https://code.createjs.com/easeljs-0.8.0.min.js"></script> <!-- for the canvas / shapes -->
@@ -308,6 +430,7 @@
   <script src="css/bootstrap.min.css"></script> <!-- for glyphicons-->
   <script src="http://code.jquery.com/jquery.js"></script>
   <script src="js/bootstrap.min.js"></script>
+  
 </body>
 </html> 
 
