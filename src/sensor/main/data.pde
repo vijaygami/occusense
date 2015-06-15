@@ -103,7 +103,7 @@ void saveData(int moveID) {
  
     // send new gesture data to server
     socket.emit("ges_new", gestureObjectOutgoing, moveID);
-
+	println("Trained gesture data sent");
     String str = Integer.toString(moveID);    
     data.endSave(dataPath("pose" + str + ".data"));
 }

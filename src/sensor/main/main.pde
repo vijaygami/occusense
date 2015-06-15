@@ -106,7 +106,7 @@ public void setup() {
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     
     socket = new SocketIO();
-    try{socket.connect("http://129.31.210.8:3000/nodes", new IOCallback(){
+    try{socket.connect("http://129.31.214.44:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
 		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
 		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
@@ -134,6 +134,7 @@ public void setup() {
 			   gestureObjectIncoming = (JSONObject)args[0];
 			   gestureId = (Integer)args[1];
 			   updateGesture = true;
+			   println("New Gesture data recieved");
 		  }
 		  
 	}});
@@ -225,7 +226,7 @@ public void draw() {
 
     // Update the cams
     SimpleOpenNI.updateAll();
-    println("Frame:" + frameCount);
+    // println("Frame:" + frameCount);
     
     // Draw depth image
     for (int i=0;i<numCams;i++){
@@ -261,24 +262,25 @@ public void draw() {
         gpersonId = deleteUser();
         lostUser = false;
 
-        if (gpersonId != -1){
+        if (gpersonId > 0){
             // If person lost in all cameras, update identified status to false on server
             socket.emit("lost:person", gpersonId);
         }
     }
 
-    debug();
+    // debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
-    if(dataAvailable && !saving){		
+    if(dataAvailable && !saving){
+	  println("New user data received");
       newUserRecieved(recieved);	// Process the received JSONArray, and update Random Forest Model
-      println("finished processing received data");
+      println("Finished processing received data");
 	  dataAvailable=false;
       recieved = new JSONArray();	// Clear array
     }
     
-    println("\n");
-    frameCount = frameCount + 1;
+   // println("\n");
+   // frameCount = frameCount + 1;
 }
 
 public void debug(){
@@ -611,7 +613,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 200;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 5000;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -633,7 +635,7 @@ public void identify(){
 						p.featDimMean[i] = p.featDimMean[i]+ p.featDim[i];		// Accumulate feature dimentions for mean calculation
 					}
 					
-					println("Guess index: " + p.guessIndex  + "    Guesses: " + Arrays.toString(p.guesses));
+					//println("Guess index: " + p.guessIndex  + "    Guesses: " + Arrays.toString(p.guesses));
                 }
                 else {
                     // Find the mode (most frequent) guess
@@ -646,7 +648,7 @@ public void identify(){
                     // Find MSE (mean squared error) between mean of guessed user and mean of last 20 frames 
                     mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), p.featDimMean);
 
-                    println("MSE: " + mse);
+                    //println("MSE: " + mse);
 
                     if (mse < mseThresh){
                         // Person succesfully identified
@@ -654,18 +656,18 @@ public void identify(){
                         p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
                         println("User detected: " + p.gpersonId);
 						socket.emit("identified" , p.gpersonId);
-						
+						println("Sent ID to server");
                     }
                     else {
                         // New user identified. Request new global person ID from server
-                        socket.emit("req_new_ID");
-                        println("requested ID");
+                        println("New user detected, requested unique ID");
+						socket.emit("req_new_ID");
                         while (requestedID == 0){}    	// Wait here while ID arrives (Server returns a non zero ID)
                         p.gpersonId = (int)requestedID;
-                        println("recieved ID: " + requestedID);
+                        println("Received ID: " + requestedID);
                         requestedID = 0;	      		// Set to zero so stay in while loop		
 						println("\n");
-						println("saving new user");
+						println("Saving new user");
                         // loads Random Forest data used for training into arrayList 'textdata'
                         loadData(); 
                         p.identified = 2;
@@ -891,7 +893,7 @@ public void evaluateCost(){
            if( cost[p][gestindex] > 0 && !one){    // debugging time removeee
             one = true;
            float time_end = millis();
-            println(time_end-start_gesture_recog);
+            //println(time_end-start_gesture_recog);
            }
        
        // if gesture match found
@@ -976,7 +978,7 @@ public int deleteUser(){
             if(l.camId == lostCam && l.personId == lostPersonId){
 
                 gpersonId = p.gpersonId;
-
+				
                 if (p.cams.size() > 1){
                     // If more than one camera can see person then remove only 
                     // the camera from which person is lost
@@ -1000,7 +1002,7 @@ void newUserRecieved(JSONArray recieved){
  
  CANNOT call this function while a user is already being saved else 'textdata' will be cleared and overwritten
  */
- 
+
   float [] mean = new float[12];	// Used to calculate and write means
   loadData();  						// Loads Random Forest data used for training into arrayList 'textdata'
 
