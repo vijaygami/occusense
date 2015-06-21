@@ -815,27 +815,31 @@
 					}
 				}
 
-				//detect if the user has changed their preferred colour
+				//detect if the user has changed their name
 				function changed_name(userID, userName, containers, index){
 
 					for(var i=0;i<scope.peopleInfo.length; i++){
 						if(userID == scope.peopleInfo[i].personID){
 							//if the name has changed
-							if(userName != scope.peopleInfo[i].personName){
+							if(userName !== scope.peopleInfo[i].personName){
+
+								containers[index].getChildAt(1).text = scope.peopleInfo[i].personName;
+								/*for(var j=0;j<scope.col_array.length;j++){
+									if(scope.col_array[j].ID == userID){
+										scope.col_Array[j].used = false;
+									}
+								}
 								//remove everything from container
 								containers[index].removeAllChildren();
 								//delete from p_array
-								containers.splice(index, 1);
+								containers.splice(index, 1);*/
+
+								
 							}
 						}
 					}
 
-					//after deleting the object, remember to set their colour to unused. 
-					for(var j=0; i<scope.col_array.length; i++){
-						if(userID == scope.col_array[j].ID){
-							scope.col_array[j].used = false;
-						}
-					}
+					
 				}
 			}
 		};
