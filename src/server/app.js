@@ -149,7 +149,7 @@ function onListening() {
 //event handler for server 
 var ioWeb = ioServer.of('/web').on('connection', function (socket) {
 
-	console.log('Web connected with id = ' + socket.id);
+	console.log('Sensor connected with id = ' + socket.id);
 
 	socket.on('disconnect', function(){
 	    console.log(socket.id + ' disconnected!!');
@@ -158,6 +158,7 @@ var ioWeb = ioServer.of('/web').on('connection', function (socket) {
 	setInterval(function(){
 		socket.emit('date', {'date': new Date()});
 	}, 1000);
+	
 
 });
 
@@ -166,6 +167,14 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 	console.log('Sensor Node connected with id: ' + socket.id);
 	
+	//receive JSON and send back / broadcast
+	socket.on('test_fwd', function(data){
+		
+		socket.broadcast.emit('test_bcd', data);
+
+		console.log('Broadcast data from Node ' + socket.id);
+	});
+
 	//for debug
 	socket.on('temp',function(){
 		
@@ -218,22 +227,11 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 				else{
 					console.log('saved ' + p1.personName + ' with ID: ' + p1.personID);
 				}
-
-				//initialise COM and jointPosition for later access
-				Person.findOne({personID: p1.personID},function(err,doc){
-					
-				 	doc.COM.push({});
-					for(i=0;i<15;i++){
-						doc.jointPosition.push({});
-					}
-
-			  		doc.save();
-			  		console.log('person with id: ' + doc);
-				});				
+		
 			});
 
 			socket.emit('res_new_ID', p1.personID);
-
+			console.log('"'+p1.personID+'" sent back to sensor with id: '+p1.nodeID);
 		});
 
 	});
@@ -247,9 +245,11 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			if (err){
 				console.error(err);
 			} else {
-				console.log(doc.personName + ' lost with id: ' + doc.personID);
+				
 				doc.identified = false;		// Update status
 				doc.save();					// Save document in db
+				console.log(doc.personName + ' lost with id: ' + doc.personID);
+				console.log('Database updated for ' + doc.personName);
 			}
 		});
 	});
@@ -263,9 +263,11 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			if (err){
 				console.error(err);
 			} else {
-				console.log(doc.personName + ' identified with id: ' + doc.personID);
+				
 				doc.identified = true;		// Update status
-				doc.save();					// Save document in db				
+				doc.save();					// Save document in db
+				console.log(doc.personName + ' identified with id: ' + doc.personID);
+				console.log('Database updated for ' + doc.personName);		
 			}
 		});
 	});
@@ -289,9 +291,9 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			Person.findOne({personID: pID},function(err,doc){
 
 				//update COM field
-				doc.COM[0].cx = data[k].COM[0];
-				doc.COM[0].cy = data[k].COM[1];
-				doc.COM[0].cz = data[k].COM[2];
+				doc.coord.x = data[k].COM[0];
+				doc.coord.y = data[k].COM[1];
+				doc.coord.z = data[k].COM[2];
 				
 				//update jointPosition
 				doc.joints.head.x = data[k].joint[0][0];
@@ -385,6 +387,23 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 		socket.broadcast.emit('ges_res',data, gID);
 	})
 
+	//
+	socket.on('checkUser',function(pID){
+		var Person = mongoose.model('Person');
+		
+		Person.findOne({personID: pID},function(err,doc){ 
+			var check;
+
+			if (doc.identified == false){
+				check = 1;
+			} else {
+				check = 0;
+			}
+			socket.emit('res_checkUser', check);
+			console.log(check+' for checking user sent back to sensor with id: '+doc.nodeID);
+		});
+	});
+
 });
 
 // Web socket namespace /webApp to handle connections to web app clients
@@ -401,8 +420,19 @@ var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
 		});		
 	});
 
-	socket.on('ges_change',function(data){
+	//
+	socket.on('ges_change',function(gID, pID){
 		socket.emit('response', data);
+	});
+
+	//
+	socket.on('userName_change',function(pID, newname){
+		var Person = mongoose.model('Person');
+		Person.findOne({personID: pID},function(err,doc){ 
+			doc.personName = newname;
+			doc.save();
+			console.log(doc.personName+' has changed name to '+newname);
+		});
 	});
 
 });
