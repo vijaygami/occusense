@@ -214,7 +214,7 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			var p1 = new Person({
 				personName: 'Guest_' + newID,
 				personID: newID,
-				identified: true,
+				//identified: true,
 				nodeID: socket.id
 
 			});
@@ -356,10 +356,12 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 				doc.joints.rightfoot.x = data[k].joint[14][0];
 				doc.joints.rightfoot.y = data[k].joint[14][1];
 				doc.joints.rightfoot.z = data[k].joint[14][2];					
-
+				
+				doc.identified = true;
 				doc.save();
-
     		});
+			var n = i+1;
+			console.log('number of people updated: '+n);
 		}
 	});
 	
