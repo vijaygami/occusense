@@ -268,7 +268,7 @@ public void draw() {
         }
     }
 
-    // debug();
+//    debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -295,6 +295,8 @@ public void debug(){
         println("Identified: " + p.identified);
         println("joints: " + p.jointPos[0]);
         println("com: " + p.com);
+        println("comLast: " + p.comLast);
+
     }
 	
 }
@@ -440,7 +442,8 @@ public void singlecam(){
             personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
             personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
-			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
+	    personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
+            personIdent.comLast = personIdents.get(inPerson).com;
             personIdents.remove(inPerson);
         }
 
@@ -486,7 +489,7 @@ public void multicam(){
             for(int j=0; j<userList.length; j++){
 
                 // For each user get centre of mass and confidence
-				com0 = new PVector();                               // Centre of mass 1
+		com0 = new PVector();                               // Centre of mass 1
                 personId = userList[j];
                 cams[i].getCoM(userList[j], com0);
                 singleCam[j] = new cSingleCam(personId, com0, features[j], jointPos[j]);
@@ -563,7 +566,8 @@ public void multicam(){
             personIdent.guesses = personIdents.get(inPerson0).guesses;
             personIdent.identified = personIdents.get(inPerson0).identified;
             personIdent.guessIndex = personIdents.get(inPerson0).guessIndex;
-			personIdent.featDimMean = personIdents.get(inPerson0).featDimMean;
+	    personIdent.featDimMean = personIdents.get(inPerson0).featDimMean;
+            personIdent.comLast = personIdents.get(inPerson0).com;
             personIdents.remove(inPerson0);
         }
         else if (inPerson0 == -1 && inPerson1 != -1 && samePerson){
@@ -573,6 +577,7 @@ public void multicam(){
             personIdent.identified = personIdents.get(inPerson1).identified;
             personIdent.guessIndex = personIdents.get(inPerson1).guessIndex;
             personIdent.featDimMean = personIdents.get(inPerson1).featDimMean;
+            personIdent.comLast = personIdents.get(inPerson1).com;
             personIdents.remove(inPerson1);
         }
 
@@ -597,8 +602,8 @@ public void multicam(){
                 personIdent.guesses = personIdents.get(inPerson1).guesses;
                 personIdent.identified = personIdents.get(inPerson1).identified;
                 personIdent.guessIndex = personIdents.get(inPerson1).guessIndex;
-				personIdent.featDimMean = personIdents.get(inPerson1).featDimMean;
-
+		personIdent.featDimMean = personIdents.get(inPerson1).featDimMean;
+                personIdent.comLast = personIdents.get(inPerson1).com;
                 personIdents.remove(inPerson1);
             }
 
@@ -614,7 +619,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 200;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 2000;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){

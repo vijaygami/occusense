@@ -51,6 +51,7 @@ class cPersonIdent {
 	public ArrayList<cLocal> cams = new ArrayList<cLocal>();	// List of all cameras with view of person
 	public int identified;       // Set to true when person has been identified
 	public PVector com;          // Location of centre of mass 
+        public PVector comLast;      // Location of centre of mass 
 	public float[] featDim = new float[13];	      	// Feature dimensions with higher confidence
 	public float[] featDimMean = new float[12];	  	// Mean of feature dimensions during identification stage(excluding confidence)
 	public PVector[] jointPos = new PVector[15];  	// Joint positions of person
@@ -63,6 +64,7 @@ class cPersonIdent {
 		this.cams = cams;				// camId at index 0 of list has highest confidence
 		this.identified = 0;           	// 0 = Unidentified, 1 = Identified, 2 = Save User
 		this.com = com;
+                this.comLast = comLast;
 		this.featDim = featDim;
 		this.featDimMean = featDimMean;
 		this.jointPos = jointPos;
