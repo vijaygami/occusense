@@ -43,10 +43,12 @@ float [] means = new float[12];             // Used for calculating mean of curr
  
 SocketIO socket;
 int requestedID=0;                          // ID to be returned by the server once requested. 
+Object lock = new Object();					// Used to freeze code untill requests met to by server
 JSONArray outgoing = new JSONArray();		// Used to transmit user training data to other nodes
 JSONArray recieved = new JSONArray();
 
 boolean enableSave = true;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
+boolean debugForceNew = false;	// Force new user detection for debug purposes
 boolean saving = false;			// Keeps track of whether or not a new user is currently being saved
 boolean dataAvailable = false;	// True when new user data is broadcast from server 
 
@@ -116,6 +118,8 @@ public void setup() {
 
 		  if(event.equals("res_new_ID")){
 			requestedID=(Integer)args[0];      // Set the global ID 
+			synchronized(lock) {lock.notify();}// Unpause code execeution
+
 		  }
 		  
 		  if(event.equals("res_data")){
@@ -442,7 +446,7 @@ public void singlecam(){
             personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
             personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
-	    personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
+			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
             personIdent.comLast = personIdents.get(inPerson).com;
             personIdents.remove(inPerson);
         }
@@ -602,7 +606,7 @@ public void multicam(){
                 personIdent.guesses = personIdents.get(inPerson1).guesses;
                 personIdent.identified = personIdents.get(inPerson1).identified;
                 personIdent.guessIndex = personIdents.get(inPerson1).guessIndex;
-		personIdent.featDimMean = personIdents.get(inPerson1).featDimMean;
+				personIdent.featDimMean = personIdents.get(inPerson1).featDimMean;
                 personIdent.comLast = personIdents.get(inPerson1).com;
                 personIdents.remove(inPerson1);
             }
@@ -619,7 +623,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 2000;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 250;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -656,7 +660,7 @@ public void identify(){
 
                     println("MSE: " + mse);
 
-                    if (mse < mseThresh){
+                    if ((mse < mseThresh) && (!debugForceNew)){
                         // Person succesfully identified
                         p.identified = 1;
                         p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
@@ -668,8 +672,11 @@ public void identify(){
                         // New user identified. Request new global person ID from server
                         println("New user detected, requested unique ID");
 						socket.emit("req_new_ID");
-                        while ((int)requestedID == 0){ println(" "); }    	// Wait here while ID arrives (Server returns a non zero ID)
-                        p.gpersonId = (int)requestedID;
+                        
+						//while ((int)requestedID == 0){ println(" "); }    	// Wait here while ID arrives (Server returns a non zero ID)
+                        synchronized(lock) {try {lock.wait();} catch (InterruptedException e) {}}  // Wait here while ID arrives 
+
+						p.gpersonId = (int)requestedID;
                         println("Received ID: " + requestedID);
                         requestedID = 0;	      		// Set to zero so stay in while loop		
 						println("\n");
