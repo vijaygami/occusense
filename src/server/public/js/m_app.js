@@ -50,7 +50,6 @@
 
 		//list of gestures (gesutre ID, user ID and time) of live gestures occured
 		$scope.currGes =[{gesID: 0, userID: 3}, {gesID: 1, userID: 11}];
-		//INSERT SOCKET.ON TO PUSH TO CURRGES EACH TIME A GESTURE IS PERFORMED
 
 		//constantly update scope
         //$interval([$scope.$apply()], [500]);
@@ -68,6 +67,9 @@
 		    //people is an array of all people objects with their data
 		    $scope.people = data;
 	    });
+
+	    //INSERT SOCKET.ON TO PUSH TO CURRGES EACH TIME A GESTURE IS PERFORMED
+	    
 	   	
 	});
 	
@@ -271,9 +273,9 @@
 
 			//INSERT SOCKET COMMS TO SERVER HERE
 			socket.emit("ges_change", this.gestureID, this.operator);
-			socket.on('response', function(msg){
+			/*socket.on('response', function(msg){
 				console.log(msg);
-			});
+			});*/
 		};
 
 		this.timer = function(){
