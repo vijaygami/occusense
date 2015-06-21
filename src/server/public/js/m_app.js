@@ -69,7 +69,7 @@
 	    });
 
 	    //INSERT SOCKET.ON TO PUSH TO CURRGES EACH TIME A GESTURE IS PERFORMED
-	    
+
 	   	
 	});
 	
@@ -495,11 +495,11 @@
 					
 						// test animation
 					
-						if(counter == 50){test = -test; counter=0;}
+						/*if(counter == 50){test = -test; counter=0;}
 						scope.peopleInfo[index]["joints"]["torso"]["x"] += test;
 						scope.peopleInfo[index]["joints"]["lefthand"]["y"] += test;
 						scope.peopleInfo[index]["joints"]["righthand"]["y"] += test;
-						counter++;
+						counter++;*/
 					}
 					//render
 					requestAnimationFrame( render );
@@ -616,8 +616,8 @@
 								p_array[i].x = value.coord.x;
 								p_array[i].y = value.coord.y;
 								p_array[i].alpha = 1;
-								value.coord.x=value.coord.x+1; /*TEST ANIMATION*/
-								if (value.coord.x > stage.canvas.width) { value.coord.x = 0; }
+								// value.coord.x=value.coord.x+1; /*TEST ANIMATION*/
+								// if (value.coord.x > stage.canvas.width) { value.coord.x = 0; }
 								found=true;
 							}
 
