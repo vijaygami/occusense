@@ -265,9 +265,10 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			} else {
 				
 				doc.identified = true;		// Update status
+				doc.nodeID = socket.id;
 				doc.save();					// Save document in db
-				console.log(doc.personName + ' identified with id: ' + doc.personID);
-				console.log('Database updated for ' + doc.personName);		
+				console.log(doc.personName + ' identified with id: ' + doc.personID+' at Sensor: '+socket.id);
+				console.log('Database updated for ' + doc.personName);	
 			}
 		});
 	});
@@ -284,7 +285,7 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
     		
     		pID = data[i].id;
 
-    		console.log('Updating COM and jointPosition for person with id: ' + pID);
+    		//console.log('Updating COM and jointPosition for person with id: ' + pID);
 
     		var k = i;
 
@@ -358,15 +359,15 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 				doc.save();
 
-    		 	console.log(doc);
     		});
 		}
 	});
 	
+
 	//event for gesture performed
 	socket.on('ges_perf',function(gID, pID){
 		
-		console.log(gID + ' ' + pID);
+		console.log(gID + ' performed by ' + pID);
 
 		var Person = mongoose.model('Person');
 
@@ -374,9 +375,8 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 			//push new gesture record to history log
     		doc.gesList.push({gesID:gID});
-
     		doc.save();
-
+    		//ioWebApp.broadcast.emit('');
     	});
 	});
 
@@ -422,7 +422,10 @@ var ioWebApp = ioServer.of('/webApp').on('connection', function(socket){
 
 	//
 	socket.on('ges_change',function(gID, pID){
-		socket.emit('response', data);
+		var Person = mongoose.model('Person');
+		Person.findOne({personID: pID},function(err,doc){ 
+			ioSensor.to(doc.nodeID).emit('ges_train', gID, pID);
+		});
 	});
 
 	//
