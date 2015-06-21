@@ -295,6 +295,7 @@ public void debug(){
         println("Identified: " + p.identified);
         println("joints: " + p.jointPos[0]);
         println("com: " + p.com);
+        println("comLast: " + p.comLast);
     }
 	
 }
@@ -412,38 +413,37 @@ public void singlecam(){
     float[][] features;
     PVector[][] jointPos;
     cPersonIdent personIdent;
-
     userList = cams[0].getUsers();
     
     jointPos = new PVector[userList.length][15];
 
     // Get feature dimensions for all users
     features = joints(cams[0], userList, jointPos);
-
+ 
     for (int i=0; i<userList.length; i++){
         PVector com = new PVector();                // Centre of mass    // inside for loop to avoid overwritting old values
-
-        cams[0].getCoM(userList[i], com);
+        PVector comLast = new PVector();            // Last centre of mass    // inside for loop to avoid overwritting old values
 
         personIdent = new cPersonIdent();
-
-        personIdent.cams.add(0, new cLocal(0, userList[i]));   
-        personIdent.com = com;
-        personIdent.featDim = features[i];
-        personIdent.jointPos = jointPos[i];
-
-        inPerson = findPersonIdent(0, userList[i]);     // Check if person already exists in personIdents
+        personIdent.cams.add(0, new cLocal(0, userList[i]));    
+        inPerson = findPersonIdent(0, userList[i]);     // Check if person already exists in personIdents  
 
         if (inPerson != -1){
             // If person already exists in global array then replace him/her
+            personIdent.comLast = personIdents.get(inPerson).com;
             personIdent.gpersonId = personIdents.get(inPerson).gpersonId;
             personIdent.guesses = personIdents.get(inPerson).guesses;
             personIdent.identified = personIdents.get(inPerson).identified;
             personIdent.guessIndex = personIdents.get(inPerson).guessIndex;
-			personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
+            personIdent.featDimMean = personIdents.get(inPerson).featDimMean;
             personIdents.remove(inPerson);
         }
+            
+        cams[0].getCoM(userList[i], com);
 
+        personIdent.com = com;
+        personIdent.featDim = features[i];
+        personIdent.jointPos = jointPos[i];
         personIdents.add(personIdent);          // Add object to global array
     }
 }
@@ -614,7 +614,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 200;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 2000;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -795,21 +795,20 @@ public void gesture(){
       // speed detection
      else{
         // calculate distance moved from last com of previous frame 
-        float speed_xz = dist(comx_last, comz_last, p.com.x, p.com.z);  
-        comx_last = p.com.x;
-        comz_last = p.com.z;
+        float distance_xz = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z);  
           //threshold determined by trial in mm
-        if(speed_xz < 123 && speed_xz > 40){
+        if(distance_xz < 123 && distance_xz > 40){
             // println("walking");    // socket emit here maybe
          }
-          else if(speed_xz > 250){
-           // println("running");    // socket emit here maybe
+          else if(distance_xz > 150){
+            // println("running");    // socket emit here maybe
           }
      }
      
       } // for null if loop
       
     }
+
   }
   
     // detect gestures for one person
