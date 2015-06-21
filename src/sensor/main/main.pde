@@ -98,6 +98,13 @@ boolean empty[] = new boolean[10];  // check if stored gesture is empty or not
 Data data;  // data type to load and save to file
 RingBuffer[] ringbuffer;  // ringbuffer to store gestures in and calculate path cost
 
+PVector hipToKneeLeft = new PVector();    // for sitting detection
+PVector hipToKneeRight = new PVector();    
+PVector facingV = new PVector(0, 1); //use the normal to the z-direction (facing of the k.sensor) //0,1);
+float fradians = 0;
+float angle_left = 0;
+float angle_right = 0;
+
 //===========================================================================//
 
 /********************************************************************/
@@ -797,26 +804,56 @@ public void gesture(){
  
       // hard coded gestures go here
       
-   if(p.com.y<500){
+    // for sitting detection 
+    // hip - knee
+    hipToKneeLeft.y = p.jointPos[4].y - p.jointPos[6].y;
+    hipToKneeLeft.z = p.jointPos[4].z - p.jointPos[6].z;     
+    hipToKneeLeft.normalize();
+    fradians = PVector.angleBetween(hipToKneeLeft, facingV);
+    angle_left = degrees( fradians );
+    
+    hipToKneeRight.y =  p.jointPos[5].y -  p.jointPos[7].y;
+    hipToKneeRight.z = p.jointPos[5].z -  p.jointPos[7].z;     
+    hipToKneeRight.normalize();
+    fradians = PVector.angleBetween(hipToKneeRight, facingV);
+    angle_right = degrees( fradians );
+      
+    //  text((p.comLast.y - p.com.y)/frameRate,20,20);
+    // Low centre of mas + 4.5 m/s speed to ground + head below centre of mass
+    if(p.com.y<500 && ((p.comLast.y - p.com.y)/frameRate) > 4.5 && p.com.y+200 > p.jointPos[0].y){
     //println("fall detection " + p.gpersonId); 
+      text("fall detection",20,20);
     }
-//     else if(p.com.y<800){
-//       // println("s'h'itting " + p.gpersonId);
-//      }
+    
+  
+    // knees bent more than 50 degrees then sitting
+    else if((angle_right > 50) && angle_left > 50){ 
+       // println("s'h'itting " + p.gpersonId);
+       text("sitting", 20, 20);
+    }
+
+    // add sleeping detection
+    else if(p.com.y > 600 && p.com.y+200 > p.jointPos[0].y){
+      text("sleep detection", 20, 20);
+
+    }
 
       // speed detection
      else{
-        // calculate distance moved from last com of previous frame 
-        float speed_xz = dist(comx_last, comz_last, p.com.x, p.com.z);  
-        comx_last = p.com.x;
-        comz_last = p.com.z;
-          //threshold determined by trial in mm
-        if(speed_xz < 123 && speed_xz > 40){
-            // println("walking");    // socket emit here maybe
+        // calculate speed from last com of previous frame 
+        float com_speed = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z)/frameRate;  
+        
+         //  threshold determined by google 1.4m/s ave speed
+        if(com_speed < 2.5 && com_speed > 1.5){
+          //println("walking");    // socket emit here maybe
+          text("walking", 20, 20);
+
          }
-          else if(speed_xz > 250){
-           // println("running");    // socket emit here maybe
-          }
+         else if(com_speed > 2.5){
+          // println("walking fast");    // socket emit here maybe
+          text("walking fast", 20, 20);
+
+         }
      }
      
       } // for null if loop
