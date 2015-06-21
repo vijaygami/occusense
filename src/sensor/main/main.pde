@@ -1116,12 +1116,12 @@ void sendJoints(){
 			
 			pos.put(temp);
 		}
+		
+		//println(pos);
+		socket.emit("person_COM",pos);
+		
 	}
 
-	//println(pos);
-	socket.emit("person_COM",pos);
-
-	
 }
 
 void keyPressed(){
