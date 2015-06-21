@@ -49,7 +49,7 @@
 		$scope.gestures = gesAvail;
 
 		//list of gestures (gesutre ID, user ID and time) of live gestures occured
-		$scope.currGes =[{gesID: 0, userID: 3}, {gesID: 1, userID: 11}];
+		$scope.currGes =[];
 
 		//constantly update scope
         //$interval([$scope.$apply()], [500]);
@@ -58,7 +58,7 @@
         $interval(function(){
 			socket.emit('request:person');
 			
-	   	}, [200]);
+	   	}, [150]);
 
         //update people when the data is recieved
 	   	socket.on('update:person', function(data){
@@ -386,7 +386,8 @@
 
 				//call function to form the skeleton image. ONLY if the people data is defined
 				//(prevents trying to access data before its loaded on start up)
-				if(typeof scope.peopleInfo != "undefined"){
+				if(scope.index!=-1){
+					console.log("passed");
 					set_joints();
 				}
 				//function to create skeleton 
@@ -490,17 +491,14 @@
 				//function continuously calls to render the scene
 				var render = function(){
 					//continuously re calculate the joints
-					if(typeof scope.peopleInfo != "undefined"){
+					if(scope.index!=-1){
+						console.log("render");
 						set_joints();
-					
-						// test animation
-					
-						/*if(counter == 50){test = -test; counter=0;}
-						scope.peopleInfo[index]["joints"]["torso"]["x"] += test;
-						scope.peopleInfo[index]["joints"]["lefthand"]["y"] += test;
-						scope.peopleInfo[index]["joints"]["righthand"]["y"] += test;
-						counter++;*/
+						
 					}
+
+
+
 					//render
 					requestAnimationFrame( render );
 					renderer.render( scene, camera );
@@ -531,8 +529,9 @@
 
 
 					for(var i=0; i<scope.col_array.length;i++){
-
+						
 						if(scope.col_array[i].ID == scope.peopleInfo[index].personID){correct_colour = scope.col_array[i].colour; break;}
+						
 					}
 
 					return correct_colour;
@@ -613,8 +612,8 @@
 
 							//if the person is identified in p_array and is still identified in peopleInfo, simply update the coordinates
 							if(value.personID == p_array[i].id && value.identified && p_array[i].identified){
-								p_array[i].x = value.coord.x;
-								p_array[i].y = value.coord.y;
+								p_array[i].x = value.coord.x/20;
+								p_array[i].y = value.coord.y/20;
 								p_array[i].alpha = 1;
 								// value.coord.x=value.coord.x+1; /*TEST ANIMATION*/
 								// if (value.coord.x > stage.canvas.width) { value.coord.x = 0; }
@@ -664,6 +663,7 @@
 					var string = [];
 					//for each person in peopleInfo...
 					angular.forEach(scope.peopleInfo, function(value, key){
+						//console.log("adding user");
 						//initially set exists to false
 						var exists = false;
 
@@ -804,6 +804,7 @@
 						if(userID == scope.col_array[i].ID){
 							//if the colour has changed
 							if(containers[index].color != scope.col_array[i].colour){
+								console.log("colour changed");
 								//remove everything from container
 								containers[index].removeAllChildren();
 								//delete from p_array
