@@ -236,7 +236,7 @@
 		this.gestureID = 0;
 
 		//index of the person that is training it
-		this.index = 0;
+		this.index = -1;
 
 		//name of person training
 		this.name ="";
@@ -386,10 +386,10 @@
 
 				//call function to form the skeleton image. ONLY if the people data is defined
 				//(prevents trying to access data before its loaded on start up)
-				if(scope.index!=-1){
+				/*if(scope.index!=-1){
 					console.log("passed");
 					set_joints();
-				}
+				}*/
 				//function to create skeleton 
 				function set_joints(){
 
@@ -484,18 +484,17 @@
 
 				};
 
-				//test animation variables
-				var counter = 0;
-				var test = 2;
-
 				//function continuously calls to render the scene
 				var render = function(){
-					//continuously re calculate the joints
+					//continuously re calculate the joints if a user is selected and the people info is defined
 					if(scope.index!=-1){
-						console.log("render");
-						set_joints();
+						if(typeof scope.peopleInfo[index] != "undefined"){
+							set_joints();
+						}
 						
 					}
+
+					if(scope.index < 0){scene.remove(line);}
 
 
 
@@ -527,7 +526,7 @@
 
 					var correct_colour;
 
-
+					
 					for(var i=0; i<scope.col_array.length;i++){
 						
 						if(scope.col_array[i].ID == scope.peopleInfo[index].personID){correct_colour = scope.col_array[i].colour; break;}
