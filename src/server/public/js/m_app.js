@@ -34,6 +34,7 @@
 		var socket = io.connect('http://localhost:3000/webApp');
 
 		$scope.colours = [
+					{colour: "#000000", used: true, ID: 0},
 					{colour: "#9be466", used: false, ID: 0},
 					{colour: "#0092ff", used: false, ID: 0},
 					{colour: "#bca7d2", used: false, ID: 0},
@@ -47,6 +48,10 @@
 		//list of gestures available
 		$scope.gestures = gesAvail;
 
+		//list of gestures (gesutre ID, user ID and time) of live gestures occured
+		$scope.currGes =[{gesID: 0, userID: 3}, {gesID: 1, userID: 11}];
+		//INSERT SOCKET.ON TO PUSH TO CURRGES EACH TIME A GESTURE IS PERFORMED
+
 		//constantly update scope
         //$interval([$scope.$apply()], [500]);
 
@@ -54,7 +59,7 @@
         $interval(function(){
 			socket.emit('request:person');
 			
-	   	}, [1500]);
+	   	}, [200]);
 
         //update people when the data is recieved
 	   	socket.on('update:person', function(data){
@@ -65,7 +70,7 @@
 	    });
 	   	
 	});
-
+	
 	//profile controller. functions to call socket to change name etc
 	m_app.controller('ProfileController', function(){
 		//variable to take new name
@@ -95,12 +100,10 @@
 
 			// Create a DataSet (allows two way data-binding).
 			var items = new vis.DataSet([
-			  {id: 1, content: 'item 1', start: '2013-04-20'},
-			  {id: 2, content: 'item 2', start: '2013-04-14'},
-			  {id: 3, content: 'item 3', start: '2013-04-18'},
-			  {id: 4, content: 'item 4', start: '2013-04-16', end: '2013-04-19'},
-			  {id: 5, content: 'item 5', start: '2013-04-25'},
-			  {id: 6, content: 'item 6', start: '2013-04-27'}
+			  {id: 1, content: 'Lights On', start: new Date(2015,05,17, 15), style: "background-color: #fe9a76; border-color: black;"},
+			  {id: 2, content: 'Falling', start: new Date(2015,05,17, 15, 05), style: "background-color: #fe9a76; border-color: black;"},
+			  {id: 3, content: 'Sitting', start: new Date(2015,05,17, 14, 58), end: new Date(2015,05,17, 15, 03),},
+			  {id: 5, content: 'Walking', start: new Date(2015,05,17, 15, 03), end: new Date(2015, 05, 17, 15, 05)},
 			]);
 
 			// Configuration for the Timeline
@@ -113,14 +116,18 @@
 		};
 		
 		//when function called, it emits new name and user ID through a socket to be changed in database
-		this.namechange = function(newName, currentName, userID){
+		this.namechange = function(newName, currentName, userID, person){
 
 			//INSERT SOCKET INFO only if the name has acutally been changed
 			if(newName != currentName){
 				console.log(newName + " " + userID);
 
+				socket.emit('userName_change', userID,  newName);
+
 			}
 			
+			//person.personName = newName;
+
 
 			//reset newName
 			this.newName = "";
@@ -184,9 +191,37 @@
 
 	});
 
-	//controller for animating real time live gestuers
-	m_app.controller('LivegestureController', function(){
+	//controller for animating real time live gestures
+	m_app.controller('LivegesController', function(){
 		
+		this.tempcol = "";
+
+		//function to delete a live gesture from currGes when it is clicked/dismissed on gui
+		this.dismiss = function(i, array){
+			//use the index i to splice the array
+			array.splice(i, 1);
+		};
+
+		//function to find user name from user ID
+		this.findname = function(userID, people){
+
+			for(var i=0; i<people.length; i++){
+				if(userID == people[i].personID){
+					return people[i].personName;
+				}
+			}
+		};
+
+		//funciton to find colour from userID
+		this.findcol = function(userID, col_array){
+
+			for(var i=0; i<col_array.length; i++){
+				if(userID == col_array[i].ID){
+					this.tempcol = col_array[i].colour;
+				}
+			}		
+		}
+
 	});
 
 	//controller for training gestures
@@ -235,7 +270,7 @@
 			$scope.timer_num="";
 
 			//INSERT SOCKET COMMS TO SERVER HERE
-			socket.emit("ges_change", "test");
+			socket.emit("ges_change", this.gestureID, this.operator);
 			socket.on('response', function(msg){
 				console.log(msg);
 			});
@@ -511,7 +546,7 @@
 	m_app.directive('mapCanvas', function(){
 		return {
 			restrict: 'AEC',
-			template: '<canvas id="map" width="700" height="700"></canvas>',
+			template: '<canvas id="map" width="725" height="550"></canvas>',
 			scope: {'peopleInfo': '=info', 'col_array': '=cols'}, //should provide 2 way binding for people data, activity log colour array
 			link: function(scope, element, attrs){
 				if(scope.stage){
@@ -533,6 +568,14 @@
 
 					//initialise map once
 					map_init();
+
+					//test object for coordinate scaling
+					/*var test = new createjs.Shape();
+					test.graphics.beginFill("red").drawCircle(0, 0, 15);
+					test.x=725;
+					test.y=400;
+					stage.addChild(test);
+					stage.update();*/
 					
 					function tick(){
 
@@ -559,6 +602,9 @@
 						//change the colour if needed
 						changed_colour(p_array, i, p_array[i].id);
 
+						//check if name has changed
+						changed_name(p_array[i].id, p_array[i].name, p_array, i);
+
 						
 						//compare current objects to database peopleInfo
 						angular.forEach(scope.peopleInfo, function(value, key){
@@ -567,6 +613,7 @@
 							if(value.personID == p_array[i].id && value.identified && p_array[i].identified){
 								p_array[i].x = value.coord.x;
 								p_array[i].y = value.coord.y;
+								p_array[i].alpha = 1;
 								value.coord.x=value.coord.x+1; /*TEST ANIMATION*/
 								if (value.coord.x > stage.canvas.width) { value.coord.x = 0; }
 								found=true;
@@ -574,9 +621,12 @@
 
 							//if the person is identified in the database peopleInfo, but not identified in p_array, add to canvas and update coordinates
 							if(value.persionID == p_array[i].id && value.identified && !p_array[i].identified){
+								console.log("called");
 								p_array[i].x=value.coord.x;
 								p_array[i].y=value.coord.y;
-								stage.addChild(p_array[i]);
+								
+								//stage.addChild(p_array[i]);
+
 								found=true;
 							}
 
@@ -585,15 +635,21 @@
 
 								//update the objects status and remove it from the stage
 								p_array[i].identified = false;
-								p_array[i].alpha = 0.4;
+								p_array[i].alpha = 0.35;
 								//stage.removeChild(p_array[i]);
 								found=true;
 							}
 
-							if(!found){
-								/*INSERT DELETE P_ARRAY OBJECT CODE*/
-							}
+							
 						});
+						
+						
+						if(!found){
+
+							//p_array[i].identified = false;
+							p_array[i].alpha = 0.35;
+							//stage.removeChild(p_array[i]);
+						}
 					}
 
 					//update stage
@@ -631,8 +687,8 @@
 							var avail_colour=find_colour(key);
 
 							//draw circle and assign available colour found
-							circle.graphics.beginFill(avail_colour).drawCircle(0, 0, 15);
-							circle.color=avail_colour;
+							circle.graphics.beginFill(avail_colour).drawCircle(0, 0, 25);
+							//circle.color=avail_colour;
 
 							//set object attributes. name color ID co-ordinates identified or not
 							/*circle.name =value.personName;
@@ -659,8 +715,9 @@
 							container.color = avail_colour;
 							container.x = value.coord.x; 
 							container.y = value.coord.y;
-							container.identified = value.identified;
-
+							// container.identified = value.identified;
+							container.identified = true;
+							console.log(container.color);
 
 							//push the container and label into p_array
 							p_array.push(container);
@@ -694,8 +751,8 @@
 				    	stage.enableMouseOver();
 
 				    	//add person info text as stage child
-				    	display_info.x = 50;
-				    	display_info.y = 650;
+				    	display_info.x = 30;
+				    	display_info.y = 500;
 				    	stage.addChild(display_info);
 
 
@@ -724,12 +781,13 @@
 					for(var j=0;j<scope.col_array.length;j++){
 						//if the colour is not being used, quit loop. its index is j
 						if(!scope.col_array[j].used){
-							//update col_array attributes. use the current_person argument to set whos using that colour
-							scope.col_array[j].used = true;
+							//update col_array attributes. use the current_person argument to set whos using that colour	
 							scope.col_array[j].ID = scope.peopleInfo[current_person].personID;
+							scope.col_array[j].used = true;
 							//return the colour
 							return scope.col_array[j].colour;
-							break;
+							
+
 						}
 					}
 
@@ -756,74 +814,43 @@
 						}
 					}
 				}
+
+				//detect if the user has changed their preferred colour
+				function changed_name(userID, userName, containers, index){
+
+					for(var i=0;i<scope.peopleInfo.length; i++){
+						if(userID == scope.peopleInfo[i].personID){
+							//if the name has changed
+							if(userName != scope.peopleInfo[i].personName){
+								//remove everything from container
+								containers[index].removeAllChildren();
+								//delete from p_array
+								containers.splice(index, 1);
+							}
+						}
+					}
+
+					//after deleting the object, remember to set their colour to unused. 
+					for(var j=0; i<scope.col_array.length; i++){
+						if(userID == scope.col_array[j].ID){
+							scope.col_array[j].used = false;
+						}
+					}
+				}
 			}
 		};
 
 
 	});
 
-	//dummy people
-	/*
-	var people = [
-		{personID: "3", personName: "Rajan", roomID: 1, coord:{x: 200, y:110}, identified: true, activity: "moving", gesture:{occuring: false, ID: 1},
-		joints:{
-					head: {x: 1136.9397, y: 1838.4788, z: -199.19128},
-					neck: {x: 1116.1221, y: 1565.6326, z:-102.1272},
-					leftshoulder: {x: 960.18274, y: 1565.2302, z: -70.52539},
-					rightshoulder: { x:1309.1814, y:1578.0754, z:-131.10278 },
-					lefthip: {x: 1012.9481, y: 1052.2681, z: -60.008057},
-					righthip: {x: 1261.99, y:1046.3298, z:-108.67578 },
-					leftknee: {x: 995.7805, y: 514.53406, z: -34.380615},
-					rightknee: {x:1284.2943, y:561.2245, z:-74.659424 },
-					torso: {x: 1118.8221, y: 1309.0903, z: -92.069336},
-					rightelbow: {x: 1440.0669, y: 1354.8427, z: -94.569824},
-					leftelbow: {x:737.94165, y:1382.9825, z:-118.676025 },
-					righthand: {x: 1554.418, y: 1059.0646, z: -240.05713},
-					lefthand: {x:780.2035, y:1069.1053, z:-203.51807 },
-					leftfoot: {x: 800.46942, y: -7.6688232, z: 106.22778 },
-					rightfoot: {x: 1359.9148, y: 8.82019, z: 164.12549 }
-				}},
-		{personID: "11", personName: "Vijay", roomID: 1, coord:{x: 150, y:100}, identified: true, activity: "moving", gesture:{occuring: true, ID: 2},
-		joints: {
-					head: {x: 140.36835, y: 1563.377, z: 134.69678},
-					neck: {x:134.30142, y: 1268.1069, z: 137.2207},
-					leftshoulder: {x: -41.846436, y: 1267.4368, z: 146.82617},
-					rightshoulder: { x: 310.44928, y: 1268.7771, z: 127.61499 },
-					lefthip: {x: 133.038483, y: 846.4087, z: 138.1919},
-					righthip: {x: 238.26555, y: 847.1894, z: 127.00098 },
-					leftknee: {x: -92.00809, y: 410.82843, z: 47.148926},
-					rightknee: {x: 384.07343, y: 425.51447, z: 84.46655 },
-					torso: {x: 134.97672, y: 1057.453, z: 134.90845},
-					rightelbow: {x: 548.9187, y: 1140.039, z: 188.83252},
-					leftelbow: {x:-303.17456, y: 1126.919, z: 153.05762 },
-					righthand: {x: 794.56274, y: 1340.7902, z: 150.11865},
-					lefthand: {x: -501.98444, y: 1321.4631, z: 3.7109375 },
-					leftfoot: {x: -73.46942, y: -7.6688232, z: 106.22778 },
-					rightfoot: {x: 359.9148, y: 8.82019, z: 164.12549 }
-				}},
-		{personID: "8", personName: "Alex", roomID: 1, coord:{x: 500, y:300}, identified: true, activity: "still", gesture:{occuring: true, ID: 1},
-		joints: {
-					head: {x: 68.94943, y: 1592.4082, z: -407.7578},
-					neck: {x: 80.04651, y: 1381.4038, z: -399.68762},
-					leftshoulder: {x: -73.47821, y: 1373.7241, z: -389.3728},
-					rightshoulder: { x: 233.57121, y: 1389.0834, z: -410.00256 },
-					lefthip: {x: 2.5872803, y: 940.5572, z: -376.27478},
-					righthip: {x: 203.34717, y: 950.5997, z: -389.76318 },
-					leftknee: {x: -33.697906, y: 507.41913, z: -345.8711},
-					rightknee: {x:206.73271, y: 519.4461, z: -320.83118 },
-					torso: {x: 91.506836, y: 1163.4911, z: -391.35327},
-					rightelbow: {x: 334.95398, y: 1077.9265, z: -381.20947},
-					leftelbow: {x:-136.69202, y: 1078.6252, z: -337.5221 },
-					righthand: {x: 352.3958, y: 784.11096, z: -452.5243},
-					lefthand: {x:-116.85309, y: 768.9044, z: -383.38684 },
-					leftfoot: {x: -73.46942, y: -7.6688232, z: 106.22778 },
-					rightfoot: {x: 359.9148, y: 8.82019, z: 164.12549 }
-				}}
-	];*/
+	
 
 	//list of available gestures
-	var gesAvail = [{name: "Lights", ID: 3, description: "Gesture to turn on light", icon: "glyphicon glyphicon-flash"},
-					{name: "Falling", ID: 4, description: "Falling recognition to issue warning/call emergency services", icon: "glyphicon glyphicon-plus-sign"},
+	var gesAvail = [{name: "Lights", ID: 0, performed: "is gesturing to switch the lights", description: "A gesture to turn the lights on or off", icon: "glyphicon glyphicon-flash"},
+					{name: "Fan", ID: 1, performed: "is gesturing to switch the fan", description: "A gesture to turn the fan on or off", icon: "glyphicon glyphicon-screenshot"},
+					{name: "Curtains", ID: 2, performed: "is gesturing to draw the curtains", description: "A gesture to draw the curtains", icon: "glyphicon glyphicon-picture"},
+					{name: "Channel", ID: 3, performed: "is changing the TV channel", description: "A gesture to change the TV channel", icon: "glyphicon glyphicon-blackboard"},
+					{name: "Falling", ID: 4, performed: "has fallen, call emergency services!", description: "A warning to indicate when someone has fallen", icon: "glyphicon glyphicon-plus-sign"},
 					];
 
 	//dummy number of people identified

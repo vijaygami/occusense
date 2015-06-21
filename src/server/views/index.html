@@ -29,10 +29,13 @@
           <!-- set varialbe tab to 1 2 or 3 depending on the tab pressed. 
           ng-click calls the controller which sets tab to 1 2 or 3
           use ng class to keep the selected tab highlighted. it returns true when 1 2 or 3 is selected-->
-          <li ng-class="{ active: panel.isSelected(1)}"> <a href ng-click="panel.selectTab(1)">Home</a></li> 
-          <li ng-class="{ active: panel.isSelected(2)}"> <a href ng-click="panel.selectTab(2)">Gesture Centre</a></li>
-          <li ng-class="{ active: panel.isSelected(3)}"> <a href ng-click="panel.selectTab(3)">History</a></li>
-          <li ng-class="{ active: panel.isSelected(4)}"> <a href ng-click="panel.selectTab(4)">User Profiles</a></li>
+          <li ng-class="{ active: panel.isSelected(1)}"> <a href ng-click="panel.selectTab(1)">
+            <span style="font-size:1.0em;" class="glyphicon glyphicon-home" aria-hidden="true"></span> Home</a></li> 
+          <li ng-class="{ active: panel.isSelected(2)}"> <a href ng-click="panel.selectTab(2)">
+            <span style="font-size:1.0em;" class="glyphicon glyphicon-eye-open" aria-hidden="true"></span> Gesture Centre</a></li>
+          <!--<li ng-class="{ active: panel.isSelected(3)}"> <a href ng-click="panel.selectTab(3)">History</a></li>-->
+          <li ng-class="{ active: panel.isSelected(4)}"> <a href ng-click="panel.selectTab(4)">
+            <span style="font-size:1.0em;" class="glyphicon glyphicon-user" aria-hidden="true"></span> User Profiles</a></li>
         </ul>
 
     <!-- real time section -->
@@ -95,18 +98,28 @@
   			</div>
 
   			<!--division for gesture centre-->
-  			<div class="panel panel-default">
-  			  	<div class="panel-heading">Live Gestures</div>
+  			<div class="panel panel-default" ng-controller="LivegesController as liveges">
+  			  	<div class="panel-heading">Live Actions</div>
 
   			  	<div class="panel-body">
-              <!--create a button/panel for each gesture using ng-repeat. the icon name and description is updated dynamically -->
+              <!--create a button/panel for each gesture using ng-repeat. the icon name and description is updated dynamically 
   			  		<div ng-repeat="gesture in gestures" class="well" class="col-xs-1 col-md-3">
-                <label>{{gesture.name}}:</label>
-                <li type="button" class="btn btn-lg" aria-label="Left Align">
-                  <span ng-style="{color: 'red'}" style="font-size:2.2em;" class="{{gesture.icon}}" aria-hidden="true"></span>
+
+                <li class="list-group-item" ng-repeat="person in people track by person.personName">
+                  <span style="font-size:2.2em;" class="{{gesture.icon}}" aria-hidden="true"></span>
+                  {{person.personName}} {{gesture.description}}
                 </li>
-                <p>{{gesture.description}}</p>
-              </div>
+              </div> -->
+
+              <!-- list of gestures performed dismissed by clicking the panel. -->
+              <ul class="list-group">
+                <a href="#" class="list-group-item" ng-repeat="ges in currGes" ng-click="liveges.dismiss($index, currGes)">
+                  {{liveges.findcol(ges.userID, colours)}}
+                  <span ng-style="{'color': liveges.tempcol}" style="font-size:2.2em;" class="{{gestures[ges.gesID].icon}}" aria-hidden="true"></span>
+                  {{liveges.findname(ges.userID, people)}} {{gestures[ges.gesID].performed}}
+                </a>
+              </ul>
+
   			  	</div>
   			</div>
 
@@ -129,7 +142,7 @@
     <!-- create buttons to train new gesutre (add or change), delete gesture, determine whether gesture is global or not (dummy, wont work)-->
     <div class="panel panel-default">
       <ul class="list-group">
-        <li class="list-group-item" ng-repeat="gesture in gestures">
+        <li class="list-group-item" ng-repeat="gesture in gestures" ng-show="!$last"> <!-- dont show falling as a "gesture"-->
           
           <span style="font-size:2.1em;" class="{{gesture.icon}}" aria-hidden="true"></span>
           <!-- make the data target name binded to the gesture ID. there is a modal per gesutre. when the button is clicked, set
@@ -283,8 +296,8 @@
 
     </div>
 
-    <!-- test that the submit works -->
-    <p>{{gesCtrl.test}}, {{gesCtrl.name}}, {{gesCtrl.operator}}</p>
+    <!-- test that the submit works 
+    <p>{{gesCtrl.test}}, {{gesCtrl.name}}, {{gesCtrl.operator}}</p>-->
 
 
 
@@ -297,7 +310,7 @@
     <div><label>View gesture/activity history</label></div>
   </div>
 
-  <!-- User Profile Section-->
+  <!-- User Profile Section -->
   <div ng-show="panel.isSelected(4)">
     <div><label>Edit user profiles</label></div>
 
@@ -342,7 +355,7 @@
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                  <button type="button" class="btn btn-primary" ng-click="profile.namechange(profile.newName, person.personName, person.personID); profile.changecol(person.personID, colours)" data-dismiss="modal" data-dismiss="modal" data-toggle="modal" data-target="#edituser_success">Save</button>
+                  <button type="button" class="btn btn-primary" ng-click="profile.namechange(profile.newName, person.personName, person.personID, person); profile.changecol(person.personID, colours)" data-dismiss="modal" data-dismiss="modal" data-toggle="modal" data-target="#edituser_success">Save</button>
                 </div>
               </div>
             </div>
@@ -355,7 +368,7 @@
 
       <!-- modal for user activity -->
       <div class="modal fade" id="activity_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
           <div class="modal-content">
             <div class="modal-header">
               <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -403,17 +416,15 @@
 
   </div>
 
-  <!-- test database reading -->
+  <!-- test database reading 
   <div>
 
     {{people[0]["joints"]["head"].x}}
     <div ng-repeat="person in people">
       {{person.personName}}
     </div>
-  </div>
+  </div>-->
 
-  <!-- test the history -->
-  <div id="visualization"></div>
 
   
 
