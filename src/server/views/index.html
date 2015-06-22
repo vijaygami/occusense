@@ -40,7 +40,7 @@
 
     <!-- real time section -->
 	 <div class="row" ng-show="panel.isSelected(1)">
-      <div><label> Real Time operation of the system</label></div>
+      <div><label>    Real Time operation of the system</label></div>
 	 	 <!-- create canvas division for the map-->
   		<div class="col-xs-12 col-sm-6 col-md-7">
         
@@ -91,8 +91,9 @@
                 <div>ID: {{people[joint.selected].personID}}</div>
                 <div>Name: {{people[joint.selected].personName}}</div>
                 <div>Activity: {{people[joint.selected].activity}}</div>
-                <div>Position: ({{people[joint.selected].coord.x}}, {{people[joint.selected].coord.y}})</div>
                 <div>Distance: {{people[joint.selected].distance  | number: 2}}</div>
+                <div>Position: ({{people[joint.selected].coord.x}}, {{people[joint.selected].coord.y}})</div>
+                
                 
 
               </div>
@@ -119,7 +120,7 @@
                 <a href="#" class="list-group-item" ng-repeat="ges in currGes" ng-click="liveges.dismiss($index, currGes)">
                   {{liveges.findcol(ges.userID, colours)}}
                   <span ng-style="{'color': liveges.tempcol}" style="font-size:2.2em;" class="{{gestures[ges.gesID].icon}}" aria-hidden="true"></span>
-                  {{liveges.findname(ges.userID, people)}} {{gestures[ges.gesID].performed}}
+                  {{liveges.findname(ges.userID, people)}} {{gestures[ges.gesID].performed}} {{gestures[ges.gesID].timestamp|date:'MM/dd/yyyy @ h:mma'}}
                 </a>
               </ul>
 
@@ -419,18 +420,7 @@
 
   </div>
 
-  <!-- test database reading 
-  <div>
 
-    {{people[0]["joints"]["head"].x}}
-    <div ng-repeat="person in people">
-      {{person.personName}}
-    </div>
-  </div>-->
-
-  <div>
-    {{colours}}
-  </div>
 
 
   
@@ -448,6 +438,7 @@
   <script src="css/bootstrap.min.css"></script> <!-- for glyphicons-->
   <script src="http://code.jquery.com/jquery.js"></script>
   <script src="js/bootstrap.min.js"></script>
+  <script src="js/jstz.min.js"></script>
   
 </body>
 </html> 

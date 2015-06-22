@@ -31,8 +31,11 @@
 	//controller for list of data
 	m_app.controller('ListController', function($scope, $interval){ //include scope dependency
 		//self.persons = persons.list;
+
+		//set up socket 
 		var socket = io.connect('http://localhost:3000/webApp');
 
+		//list of pre determined colours for colour array
 		$scope.colours = [
 					{colour: "#000000", used: true, ID: 0},
 					{colour: "#9be466", used: false, ID: 0},
@@ -48,13 +51,13 @@
 		//list of gestures available
 		$scope.gestures = gesAvail;
 
-		//list of gestures (gesutre ID, user ID and time) of live gestures occured
+		//list of gestures already performed (gesutre ID, user ID and time) of live gestures occured
 		$scope.currGes =[];
 
 		//constantly update scope
         //$interval([$scope.$apply()], [500]);
 
-        //when on interval, request data
+        //request data on interval
         $interval(function(){
 			socket.emit('request:person');
 			
@@ -68,10 +71,10 @@
 		    $scope.people = data;
 	    });
 
-	    //INSERT SOCKET.ON TO PUSH TO CURRGES EACH TIME A GESTURE IS PERFORMED
+	    //socket to push to currGes (the live gesture list) each time a gesture is performed
 	    socket.on('live_ges', function(gID, uID){
 	    	console.log("gesture performed");
-	    	$scope.currGes.push({gesID: gID, userID: uID});
+	    	$scope.currGes.push({gesID: gID, userID: uID, timestamp: Date.now});
 
 	    });
 	   	
@@ -90,6 +93,7 @@
 		//when we click view activities on a user, set selected attributes for using in the timeline creation directive
 		//ges_data takes the gesture history of the user in format [{name, time}, ..., ...]
 		this.load_timeline=function(userName, ges_data, act_data, ges){
+			
 			//first set the username to display in the modal
 			this.selectedName=userName;
 
@@ -104,66 +108,90 @@
 			    container.removeChild(container.lastChild);
 			}
 
+			//array to store timeline data
 			var item = [];
+
+			//variable to show split in item between activities and gestuers
 			var split;
+
+			//store each activity to item
 			for(var i=0; i<act_data.length; i++){
-				if(act_data[i]!=null && act_data[i+1] != null){
+				//case for if the element isnt null, and the next element is defined
+				if(act_data[i]!=null && typeof act_data[i+1] != "undefined"){
+					
+					//create timeline bar object. end date determine by next element 
 					item.push({id: i, content: act_data[i].actName, 
 						start: new Date(
 							act_data[i].actTime.substring(0,4), 
-							act_data[i].actTime.substring(5,7),
+							act_data[i].actTime.substring(5,7)-1,
 							act_data[i].actTime.substring(8,10),
-							act_data[i].actTime.substring(11,13),
+							+act_data[i].actTime.substring(11,13)+1,							
 							act_data[i].actTime.substring(14,16),
 							act_data[i].actTime.substring(17,19)),
 						end: new Date(
 							act_data[i+1].actTime.substring(0,4), 
-							act_data[i+1].actTime.substring(5,7),
+							act_data[i+1].actTime.substring(5,7)-1,
 							act_data[i+1].actTime.substring(8,10),
-							act_data[i+1].actTime.substring(11,13),
+							+act_data[i+1].actTime.substring(11,13)+1,
 							act_data[i+1].actTime.substring(14,16),
 							act_data[i+1].actTime.substring(17,19))
 						}						
 					);
-				}		
+					
+				}
+
+				//case for if the next element is not defined (this is the last activity in the database for this person)
+				else if(act_data[i]!=null && typeof act_data[i+1] == "undefined"){
+					//set the end date of the timeline object to the current time and date
+					item.push({id: i, content: act_data[i].actName, 
+						start: new Date(
+							act_data[i].actTime.substring(0,4), 
+							act_data[i].actTime.substring(5,7)-1,
+							act_data[i].actTime.substring(8,10),
+							+act_data[i].actTime.substring(11,13)+1,
+							act_data[i].actTime.substring(14,16),
+							act_data[i].actTime.substring(17,19)),
+						end: new Date			
+						}						
+					);
+				}
+				//keep setting split to i
+				split=i;			
 			}
-			split = i;
-			for(var i=split; i<ges_data.length; i++){
-				if(ges_data[i]!=null && ges_data[i+1] != null){
+			split++;
+			
+			//store each gesture to item. use split to continue the item array
+			for(var i=split; i-split<ges_data.length; i++){
+
+				//case to make sure the item is not null
+				if(ges_data[i-split]!=null){
+					//set name of gesture to a local variable cont
 					var cont;
 					for(var k=0; k<ges.length;k++){
-						if(ges.ID == ges_data[i].gesID){
-							cont = ges.name;
+						if(ges[k].ID == ges_data[i-split].gesID){
+							cont = ges[k].name;
 						}
 					}
 
+					//push to timeline object. no end time
 					item.push({id: i, content: cont, 
 						start: new Date(
-							ges_data[i].actTime.substring(0,4), 
-							ges_data[i].actTime.substring(5,7),
-							ges_data[i].actTime.substring(8,10),
-							ges_data[i].actTime.substring(11,13),
-							ges_data[i].actTime.substring(14,16),
-							ges_data[i].actTime.substring(17,19)),
-						end: new Date(
-							ges_data[i+1].actTime.substring(0,4), 
-							ges_data[i+1].actTime.substring(5,7),
-							ges_data[i+1].actTime.substring(8,10),
-							ges_data[i+1].actTime.substring(11,13),
-							ges_data[i+1].actTime.substring(14,16),
-							ges_data[i+1].actTime.substring(17,19)),
+							ges_data[i-split].gesTime.substring(0,4), 
+							ges_data[i-split].gesTime.substring(5,7)-1,
+							ges_data[i-split].gesTime.substring(8,10),
+							+ges_data[i-split].gesTime.substring(11,13)+1,
+							ges_data[i-split].gesTime.substring(14,16),
+							ges_data[i-split].gesTime.substring(17,19)),
 						style: "background-color: #fe9a76; border-color: black;"
 						}
 						
 					);
-					
-					
-
 				}
+
 				
 			}
 			
-			
+			//create dataset for timeline
 			var items = new vis.DataSet(item);
 
 			// Create a DataSet (allows two way data-binding).
@@ -178,6 +206,8 @@
 
 			// Configuration for the Timeline
 			//eventually ensure it only displays daily data
+
+			//options for timeline
 			var options = {};
 
 
@@ -188,7 +218,7 @@
 		//when function called, it emits new name and user ID through a socket to be changed in database
 		this.namechange = function(newName, currentName, userID, person){
 
-			//INSERT SOCKET INFO only if the name has acutally been changed
+			//emit socket only if the name has actually changed
 			if(newName != currentName){
 				console.log(newName + " " + userID);
 
@@ -203,9 +233,8 @@
 			this.newName = "";
 		};
 
-		//sets colour of each person on profile page
+		//sets colour of each person on profile page. uses element ID from html doc to find it
 		this.findcol = function(userID, col_array){
-			//console.log("test");
 			for(var i=0; i<col_array.length;i++){
 				if(userID == col_array[i].ID){
 					document.getElementById("circle"+userID).setAttribute("fill", col_array[i].colour);

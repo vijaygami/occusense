@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+//next 2 lines are to ensure the activity cant changed within x seconds of being changed
+var act_count = 0;
+setInterval(function(){act_count++;},1000);
 /**
  * Module dependencies.
  */
@@ -145,6 +148,38 @@ function onListening() {
   debug('Listening on ' + bind);
 }
 
+//set identified gesList actList distance to empty/0 on start up
+startup();
+function startup(){
+	var Person = mongoose.model('Person');
+
+	Person.count({}, function(err, count){
+		console.log(count+" people already in database");
+
+		//for each person in database (measured by count)
+		for(var i=1; i<=count; i++){	
+			//find the document
+			Person.findOne({personID: i},function(err,doc){
+				if (err){
+					console.error(err);
+				} else {
+					//set the values and save
+					doc.identified = false;		// Update status
+					doc.activity = 'empty';
+					doc.actList='';
+					doc.gesList='';
+					doc.distance=0;
+					console.log("userID "+doc.personID+" reset");
+					doc.save();					// Save document in db
+					
+				}
+			});
+
+		}
+
+	});	
+}
+
 
 //event handler for server 
 var ioWeb = ioServer.of('/web').on('connection', function (socket) {
@@ -274,6 +309,13 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 	//updating COM and jointPosition from node
 	socket.on('person_COM',function(data){
+		//so activity cant change or flicker within 4 seconds
+		/*act_count++;
+		console.log("inc");
+		if(act_count >= 100){
+			console.log("cut");
+			act_count=0;
+		}*/
 
 		var Person = mongoose.model('Person');
 
@@ -375,12 +417,13 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 		Person.findOne({personID: pID},function(err,doc){
 
-			//push new gesture record to history log
-			
-			if(doc.activity != aName){
+			//save activity and push to activity history field if it has been 3 seconds and the activity is different			
+			if(doc.activity != aName && act_count>4){
+				console.log("activitiy passed");
 				doc.activity = aName;
 				doc.actList.push({actName:aName});
 				doc.save();
+				act_count =0;
 			}
 			
 			//console.log(aName+' is performed by '+doc.personName)
