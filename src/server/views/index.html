@@ -92,7 +92,9 @@
                 <div>Name: {{people[joint.selected].personName}}</div>
                 <div>Activity: {{people[joint.selected].activity}}</div>
                 <div>Position: ({{people[joint.selected].coord.x}}, {{people[joint.selected].coord.y}})</div>
-                <div>{{people[joint.selected].joints}}</div>
+                <div>Distance: {{people[joint.selected].distance  | number: 2}}</div>
+                
+
               </div>
 
   			  	</div>
@@ -326,7 +328,7 @@
           <label>Name:</label> {{person.personName}}
 
           <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#edit_modal{{person.personID}}" ng-click="profile.newName = person.personName; profile.findlocalcol(person.personID, colours)">Edit</button>
-          <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#activity_modal" ng-click="profile.load_timeline(person.personName, person.gesList)">Activity</button>
+          <button type="button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#activity_modal" ng-click="profile.load_timeline(person.personName, person.gesList, person.actList, gestures)">Activity</button>
 
           <!-- modal for edit user-->
           <div class="modal fade" id="edit_modal{{person.personID}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">

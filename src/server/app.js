@@ -214,9 +214,8 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			var p1 = new Person({
 				personName: 'Guest_' + newID,
 				personID: newID,
-				//identified: true,
+				distance : 0,
 				nodeID: socket.id
-
 			});
 
 			p1.save(function(err){
@@ -291,6 +290,9 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 			Person.findOne({personID: pID},function(err,doc){
 
+				//updata distance travelled
+				doc.distance += data[k].distance;
+
 				//update COM field
 				doc.coord.x = data[k].COM[0];
 				doc.coord.y = data[k].COM[1];
@@ -359,12 +361,31 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 				
 				doc.identified = true;
 				doc.save();
+
+				//console.log('lefthand '+doc.joints.lefthand.y);
     		});
 			var n = i+1;
-			console.log('number of people updated: '+n);
+			//console.log('number of people updated: '+n);
 		}
 	});
 	
+	//
+	socket.on('act_perf',function(aName,pID){
+		var Person = mongoose.model('Person');
+
+		Person.findOne({personID: pID},function(err,doc){
+
+			//push new gesture record to history log
+			
+			if(doc.activity != aName){
+				doc.activity = aName;
+				doc.actList.push({actName:aName});
+				doc.save();
+			}
+			
+			//console.log(aName+' is performed by '+doc.personName)
+		});
+	});
 
 	//event for gesture performed
 	socket.on('ges_perf',function(gID, pID){
@@ -378,7 +399,7 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			//push new gesture record to history log
     		doc.gesList.push({gesID:gID});
     		doc.save();
-    		//ioWebApp.broadcast.emit('');
+    		ioWebApp.emit('live_ges',gID, pID);
     	});
 	});
 

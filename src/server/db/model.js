@@ -37,8 +37,9 @@ var personSchema = new mongoose.Schema({
 		z: Number
 	},
 	identified: Boolean,
-	activity: {type: String, enum: ['moving','still','lying']},
-	gesList: [{gesName: String, gesTime: { type : Date, default: Date.now }}],
+	activity: String,
+	distance: Number,
+	gesList: [{gesID: Number, gesTime: { type : Date, default: Date.now }}],
 	actList: [{actName: String, actTime: { type : Date, default: Date.now }}],
 	joints: {
 		head: 			{x: Number, y: Number, z: Number},
@@ -66,7 +67,6 @@ var Person = mongoose.model('Person',personSchema);
 exports.Room = Room;
 exports.App = App;
 exports.Person = Person;
-
 
 //Adding new person documents for testing purposes only
 // var p1 = new Person({

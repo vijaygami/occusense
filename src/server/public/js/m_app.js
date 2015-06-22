@@ -69,7 +69,11 @@
 	    });
 
 	    //INSERT SOCKET.ON TO PUSH TO CURRGES EACH TIME A GESTURE IS PERFORMED
+	    socket.on('live_ges', function(gID, uID){
+	    	console.log("gesture performed");
+	    	$scope.currGes.push({gesID: gID, userID: uID});
 
+	    });
 	   	
 	});
 	
@@ -85,7 +89,7 @@
 
 		//when we click view activities on a user, set selected attributes for using in the timeline creation directive
 		//ges_data takes the gesture history of the user in format [{name, time}, ..., ...]
-		this.load_timeline=function(userName, ges_data){
+		this.load_timeline=function(userName, ges_data, act_data, ges){
 			//first set the username to display in the modal
 			this.selectedName=userName;
 
@@ -100,13 +104,77 @@
 			    container.removeChild(container.lastChild);
 			}
 
+			var item = [];
+			var split;
+			for(var i=0; i<act_data.length; i++){
+				if(act_data[i]!=null && act_data[i+1] != null){
+					item.push({id: i, content: act_data[i].actName, 
+						start: new Date(
+							act_data[i].actTime.substring(0,4), 
+							act_data[i].actTime.substring(5,7),
+							act_data[i].actTime.substring(8,10),
+							act_data[i].actTime.substring(11,13),
+							act_data[i].actTime.substring(14,16),
+							act_data[i].actTime.substring(17,19)),
+						end: new Date(
+							act_data[i+1].actTime.substring(0,4), 
+							act_data[i+1].actTime.substring(5,7),
+							act_data[i+1].actTime.substring(8,10),
+							act_data[i+1].actTime.substring(11,13),
+							act_data[i+1].actTime.substring(14,16),
+							act_data[i+1].actTime.substring(17,19))
+						}						
+					);
+				}		
+			}
+			split = i;
+			for(var i=split; i<ges_data.length; i++){
+				if(ges_data[i]!=null && ges_data[i+1] != null){
+					var cont;
+					for(var k=0; k<ges.length;k++){
+						if(ges.ID == ges_data[i].gesID){
+							cont = ges.name;
+						}
+					}
+
+					item.push({id: i, content: cont, 
+						start: new Date(
+							ges_data[i].actTime.substring(0,4), 
+							ges_data[i].actTime.substring(5,7),
+							ges_data[i].actTime.substring(8,10),
+							ges_data[i].actTime.substring(11,13),
+							ges_data[i].actTime.substring(14,16),
+							ges_data[i].actTime.substring(17,19)),
+						end: new Date(
+							ges_data[i+1].actTime.substring(0,4), 
+							ges_data[i+1].actTime.substring(5,7),
+							ges_data[i+1].actTime.substring(8,10),
+							ges_data[i+1].actTime.substring(11,13),
+							ges_data[i+1].actTime.substring(14,16),
+							ges_data[i+1].actTime.substring(17,19)),
+						style: "background-color: #fe9a76; border-color: black;"
+						}
+						
+					);
+					
+					
+
+				}
+				
+			}
+			
+			
+			var items = new vis.DataSet(item);
+
 			// Create a DataSet (allows two way data-binding).
-			var items = new vis.DataSet([
+			/*var itemtest = new vis.DataSet([
 			  {id: 1, content: 'Lights On', start: new Date(2015,05,17, 15), style: "background-color: #fe9a76; border-color: black;"},
-			  {id: 2, content: 'Falling', start: new Date(2015,05,17, 15, 05), style: "background-color: #fe9a76; border-color: black;"},
+			  {id: 2, content: 'Falling', start: new Date(2015,05,17, 15, 05, 50), style: "background-color: #fe9a76; border-color: black;"},
 			  {id: 3, content: 'Sitting', start: new Date(2015,05,17, 14, 58), end: new Date(2015,05,17, 15, 03),},
 			  {id: 5, content: 'Walking', start: new Date(2015,05,17, 15, 03), end: new Date(2015, 05, 17, 15, 05)},
 			]);
+*/
+			//console.log(itemtest[0].start);
 
 			// Configuration for the Timeline
 			//eventually ensure it only displays daily data
