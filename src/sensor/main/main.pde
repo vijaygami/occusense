@@ -105,7 +105,8 @@ PVector facingV = new PVector(0, 1); //use the normal to the z-direction (facing
 float fradians = 0;
 float angle_left = 0;
 float angle_right = 0;
-
+float user_dist = 0;  // distance a user has travelled since last frame
+float com_speed = 0;  // speed at which each user has travelled
 //===========================================================================//
 
 /********************************************************************/
@@ -283,7 +284,7 @@ public void draw() {
         }
     }
 
-    debug();
+    //debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -840,11 +841,14 @@ public void gesture(){
     fradians = PVector.angleBetween(hipToKneeRight, facingV);
     angle_right = degrees( fradians );
       
-    //  text((p.comLast.y - p.com.y)/frameRate,20,20);
-    // Low centre of mas + 4.5 m/s speed to ground + head below centre of mass
-    if(p.com.y<500 && ((p.comLast.y - p.com.y)/frameRate) > 4.5 && p.com.y+200 > p.jointPos[0].y){
-    //println("fall detection " + p.gpersonId); 
+    // Low centre of mass + 4.5 m/s speed to ground + head below centre of mass
+    
+  //  text(abs((p.comLast.y - p.com.y)/frameRate/frameRate) , 100 , 100);  // debugging
+   // if(p.com.y<500 && abs((p.comLast.y - p.com.y)/frameRate) > 3 && p.com.y+200 > p.jointPos[0].y){
+     if(abs((p.comLast.y - p.com.y)/frameRate/frameRate) > 0.3){
+      println("fall detection " + p.gpersonId); 
       text("fall detection",20,20);
+      socket.emit("ges_perf",5, p.gpersonId);  //fall detected.
     }
     
   
@@ -852,29 +856,39 @@ public void gesture(){
     else if((angle_right > 50) && angle_left > 50){ 
        // println("s'h'itting " + p.gpersonId);
        text("sitting", 20, 20);
+       socket.emit("act_perf","sitting", p.gpersonId);  //sitting detection
+
     }
 
-    // add sleeping detection
+    //  sleeping detection
     else if(p.com.y > 600 && p.com.y+200 > p.jointPos[0].y){
       text("sleep detection", 20, 20);
+      socket.emit("act_perf","lying", p.gpersonId);  
+
 
     }
 
       // speed detection
      else{
         // calculate speed from last com of previous frame 
-        float com_speed = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z)/frameRate;  
+        user_dist = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z);
+        com_speed = user_dist/frameRate;  
         
+        // stationary detection
+//        if(user_dist < 5){
+//          text("standing", 20, 20);
+//          socket.emit("act_perf","standing", p.gpersonId);  //walking detected
+//        }
+
          //  threshold determined by google 1.4m/s ave speed
-        if(com_speed < 2.5 && com_speed > 1.5){
-          //println("walking");    // socket emit here maybe
+         if(com_speed < 2.5 && com_speed > 0.8){
           text("walking", 20, 20);
-
+          socket.emit("act_perf","walking", p.gpersonId);  //walking detected
          }
-         else if(com_speed > 2.5){
-          // println("walking fast");    // socket emit here maybe
-          text("walking fast", 20, 20);
-
+         
+         else if(com_speed > 4){
+           text("walking fast", 20, 20);
+           socket.emit("act_perf","running", p.gpersonId);  //walking detected
          }
      }
      
@@ -1123,6 +1137,11 @@ void sendJoints(){
 
  	for(cPersonIdent p : personIdents){
 		if(p.identified == 1){
+                    
+                  user_dist = abs(dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z))/1000;
+                  if (user_dist < 0.01){
+                    user_dist = 0;
+                  }
 			
 			for(int i=0;i<15;i++){
 				jointPos[i] = (p.jointPos[i]).array();
@@ -1134,6 +1153,7 @@ void sendJoints(){
 				temp.put("id", (int)p.gpersonId);
 				temp.put("COM", COM);
 				temp.put("joint", jointPos);
+                                temp.put("distance", user_dist);
 			}  catch (JSONException e) {}
 			
 			pos.put(temp);
