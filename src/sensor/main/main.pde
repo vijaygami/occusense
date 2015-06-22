@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 1;
+int numCams = 2;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -117,7 +117,7 @@ public void setup() {
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     
     socket = new SocketIO();
-    try{socket.connect("http://129.31.210.216:3000/nodes", new IOCallback(){
+    try{socket.connect("http://129.31.215.242:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
 		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
 		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
@@ -561,7 +561,7 @@ public void multicam(){
                 }
 
                 if (samePerson){
-                    println("Same person \tcom0:"+com0+"\tcom1"+com1);
+                    //println("Same person \tcom0:"+com0+"\tcom1"+com1);
 
                     // Same person so compare confidence and add only one copy to global array
                     if(c0.featDim[12] < c1.featDim[12]){
@@ -1131,13 +1131,15 @@ void newUserRecieved(JSONArray recieved){
 
 void sendJoints(){
 	
-	float[][] jointPos = new float[15][3]; 
-	float[] COM = new float[3]; 
 	JSONArray pos = new JSONArray();		// Stores joint positions, COM's and gpersonID for all identified users
-	JSONObject temp = new JSONObject();		// Stores joint positions, COM's and gpersonID for an identified user
+	
 
  	for(cPersonIdent p : personIdents){
-		if(p != null && p.identified == 1){
+		if(p != null && p.jointPos[0] != null && p.identified == 1){
+			float[][] jointPos = new float[15][3]; 
+			float[] COM = new float[3]; 
+			JSONObject temp = new JSONObject();		// Stores joint positions, COM's and gpersonID for an identified user
+			
 		    user_dist = abs(dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z))/1000;
 		    if (user_dist < 0.01){
 				user_dist = 0;
@@ -1158,9 +1160,11 @@ void sendJoints(){
 			}  catch (JSONException e) {}
 			
 			pos.put(temp);
-            socket.emit("person_COM",pos);
+            
 		}
     }
+	
+	socket.emit("person_COM",pos);
 }
 
 
