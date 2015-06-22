@@ -283,8 +283,25 @@ public void draw() {
             socket.emit("lost:person", gpersonId);
         }
     }
-
-    //debug();
+	
+	for(cPersonIdent p : personIdents){
+        
+        if(p.comLast != null && p.com != null){
+			if (p.com.x == p.comLast.x && p.com.y == p.comLast.y && p.com.z == p.comLast.z){
+				if(p.cams.size() == 1){
+					gpersonId = p.gpersonId;
+					if (gpersonId > 0){
+						// If person lost in all cameras, update identified status to false on server
+						socket.emit("lost:person", gpersonId);
+					}
+					personIdents.remove(p);
+					break;
+					
+				}
+			}
+        }
+    }
+    debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -295,8 +312,9 @@ public void draw() {
       recieved = new JSONArray();	// Clear array
     }
     
-   //println("\n");
-   // frameCount = frameCount + 1;
+   println("\n");
+   frameCount = frameCount + 1;
+   println("frameCount:" + frameCount);
    sendJoints();
 }
 
@@ -848,7 +866,7 @@ public void gesture(){
      if(abs((p.comLast.y - p.com.y)/frameRate/frameRate) > 0.3){
       println("fall detection " + p.gpersonId); 
       text("fall detection",20,20);
-      socket.emit("ges_perf",5, p.gpersonId);  //fall detected.
+      //socket.emit("ges_perf",5, p.gpersonId);  //fall detected.
     }
     
   
