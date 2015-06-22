@@ -120,7 +120,7 @@
 				if(act_data[i]!=null && typeof act_data[i+1] != "undefined"){
 					
 					//create timeline bar object. end date determine by next element 
-					item.push({id: i, content: act_data[i].actName, 
+					item.push({id: i, content: act_data[i].actName,
 						start: new Date(
 							act_data[i].actTime.substring(0,4), 
 							act_data[i].actTime.substring(5,7)-1,

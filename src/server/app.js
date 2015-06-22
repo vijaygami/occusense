@@ -281,6 +281,8 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 			} else {
 				
 				doc.identified = false;		// Update status
+				doc.activity = "lost";
+				doc.actList.push({actName: "lost"});
 				doc.save();					// Save document in db
 				console.log(doc.personName + ' lost with id: ' + doc.personID);
 				console.log('Database updated for ' + doc.personName);
