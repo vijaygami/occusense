@@ -1128,6 +1128,7 @@ void newUserRecieved(JSONArray recieved){
   forest.load(forestfile);														// Probably unncecessary to reload since model trained in 'savemodel()'
 }
 
+
 void sendJoints(){
 	
 	float[][] jointPos = new float[15][3]; 
@@ -1136,16 +1137,15 @@ void sendJoints(){
 	JSONObject temp = new JSONObject();		// Stores joint positions, COM's and gpersonID for an identified user
 
  	for(cPersonIdent p : personIdents){
-		if(p.identified == 1){
-                    
-                  user_dist = abs(dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z))/1000;
-                  if (user_dist < 0.01){
-                    user_dist = 0;
-                  }
-			
+		if(p != null && p.identified == 1){
+		    user_dist = abs(dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z))/1000;
+		    if (user_dist < 0.01){
+				user_dist = 0;
+		    }
+                  
 			for(int i=0;i<15;i++){
 				jointPos[i] = (p.jointPos[i]).array();
-			}
+			} 
 
 			COM = (p.com).array();
 			
@@ -1153,18 +1153,16 @@ void sendJoints(){
 				temp.put("id", (int)p.gpersonId);
 				temp.put("COM", COM);
 				temp.put("joint", jointPos);
-                                temp.put("distance", user_dist);
+                temp.put("distance", user_dist);
+              
 			}  catch (JSONException e) {}
 			
 			pos.put(temp);
+            socket.emit("person_COM",pos);
 		}
-		
-		//println(pos);
-		socket.emit("person_COM",pos);
-		
-	}
-
+    }
 }
+
 
 void keyPressed(){
 	if (key != CODED){
