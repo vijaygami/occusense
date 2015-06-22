@@ -42,7 +42,8 @@ ArrayList<String> textdata = new ArrayList<String>();   // Contains saved users 
 float [] means = new float[12];             // Used for calculating mean of current user being saved. (only features not confidence stored, hence size 12 not 13)
  
 SocketIO socket;
-int requestedID=0;                          // ID to be returned by the server once requested. 
+int requestedID=0;                          		// ID to be returned by the server once requested. 
+int IdAvailable = 0;								// 1 means ID is not currently used on any other node, 0 means ID is taken
 Object lock = new Object();					// Used to freeze code untill requests met to by server
 JSONArray outgoing = new JSONArray();		// Used to transmit user training data to other nodes
 JSONArray recieved = new JSONArray();
@@ -124,10 +125,16 @@ public void setup() {
 		public void on(String event, IOAcknowledge ack, Object... args) {
 
 		  if(event.equals("res_new_ID")){
-			requestedID=(Integer)args[0];      // Set the global ID 
-			synchronized(lock) {lock.notify();}// Unpause code execeution
+			requestedID=(Integer)args[0];      	// Set the global ID 
+			synchronized(lock) {lock.notify();}	// Unpause code execeution
 
 		  }
+		  
+		  if(event.equals("res_checkUser")){
+			IdAvailable = ((Integer)args[0]);
+			synchronized(lock) {lock.notify();}	// Unpause code execeution
+		  }
+		  
 		  
 		  if(event.equals("res_data")){
 			recieved = (JSONArray)args[0];
@@ -641,13 +648,13 @@ public void identify(){
             if(p.identified == 0){ 
                 // If person is unidentified, then identify using random forest
 
-                Mat testRow =  new Mat(1, 13, CvType.CV_32FC1);           // Floating point type Mat object
+                Mat testRow =  new Mat(1, 13, CvType.CV_32FC1);          	// Floating point type Mat object
                 
-                for(int col = 0; col < p.featDim.length; col++){          // Copy into Mat structure as required by OpenCV
+                for(int col = 0; col < p.featDim.length; col++){          			// Copy into Mat structure as required by OpenCV
                     testRow.put(0, col, p.featDim[col]);
                 }
                         
-                if(p.guessIndex < 20){										  	// Make 20 guesses then find mode
+                if(p.guessIndex < 20){										  				// Make 20 guesses then find mode
                     p.guesses[p.guessIndex] = int(forest.predict(testRow));   	// Guess person using random forrest model     
                     p.guessIndex = p.guessIndex + 1;
                     
@@ -657,47 +664,59 @@ public void identify(){
 					
 					//println("Guess index: " + p.guessIndex  + "    Guesses: " + Arrays.toString(p.guesses));
                 }
+				
                 else {
                     // Find the mode (most frequent) guess
                     p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 20));
                     
+					socket.emit("checkUser" , p.guesses[p.guessIndex]);									// Check to see if ID is free or taken by other nodes
+					synchronized(lock) {try {lock.wait();} catch (InterruptedException e) {}}  	// Wait here while request met 
+					
+					/* if(IdAvailable == 0{
+						println("Guessed ID not available, resetting guess count");
+						p.guessIndex = 0;
+						for (int i=0; i<12;i++){
+							p.featDimMean[i] = 0;		// Reset mean count
+						}
+					} */
+				
 					for (int i=0; i<12;i++){
 						p.featDimMean[i] = p.featDimMean[i]/20;					// Compute mean
 					}
 					
-                    // Find MSE (mean squared error) between mean of guessed user and mean of last 20 frames 
-                    mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), p.featDimMean);
+					// Find MSE (mean squared error) between mean of guessed user and mean of last 20 frames 
+					mse = MSE(lookupMean (p.guesses[p.guessIndex] , personMeans), p.featDimMean);
 
-                    println("MSE: " + mse);
+					println("MSE: " + mse);
 
-                    if ((mse < mseThresh) && (!debugForceNew)){
-                        // Person succesfully identified
-                        p.identified = 1;
-                        p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
-                        println("User detected: " + p.gpersonId);
+					if ((mse < mseThresh) && (!debugForceNew)){
+						// Person succesfully identified
+						p.identified = 1;
+						p.gpersonId = p.guesses[p.guessIndex];      // Set global person ID
+						println("User detected: " + p.gpersonId);
 						socket.emit("identified" , p.gpersonId);
 						println("Sent ID to server");
-                    }
-                    else {
-                        // New user identified. Request new global person ID from server
-                        println("New user detected, requested unique ID");
+					}
+					else {
+						// New user identified. Request new global person ID from server
+						println("New user detected, requested unique ID");
 						socket.emit("req_new_ID");
-                        
+						
 						//while ((int)requestedID == 0){ println(" "); }    	// Wait here while ID arrives (Server returns a non zero ID)
-                        synchronized(lock) {try {lock.wait();} catch (InterruptedException e) {}}  // Wait here while ID arrives 
+						synchronized(lock) {try {lock.wait();} catch (InterruptedException e) {}}  // Wait here while ID arrives 
 
 						p.gpersonId = (int)requestedID;
-                        println("Received ID: " + requestedID);
-                        requestedID = 0;	      		// Set to zero so stay in while loop		
+						println("Received ID: " + requestedID);
+						requestedID = 0;	      		// Set to zero so stay in while loop		
 						println("\n");
 						println("Saving new user");
-                        // loads Random Forest data used for training into arrayList 'textdata'
-                        loadData(); 
-                        p.identified = 2;
+						// loads Random Forest data used for training into arrayList 'textdata'
+						loadData(); 
+						p.identified = 2;
 						saving = true;
 						outgoing = new JSONArray();	// New JSON array. (only way to clear array)						
-                    }
-                }
+					}
+				}
             }
 
             if(p.identified == 2 && enableSave){
