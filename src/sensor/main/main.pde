@@ -115,7 +115,7 @@ public void setup() {
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     
     socket = new SocketIO();
-    try{socket.connect("http://129.31.214.44:3000/nodes", new IOCallback(){
+    try{socket.connect("http://129.31.210.216:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
 		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
 		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
@@ -155,30 +155,27 @@ public void setup() {
 	// Load the library
     SimpleOpenNI.start();
 	
-    // Initialize and calibtrate all cams
+    // Initialize and calibrate all cams
     for (int i = 0; i < cams.length; i++) {
         cams[i] = new Camera(this, i);
         
         // Calibrate camera
-        String[] coordsys = loadStrings("usercoordsys"+i+".txt");
+        String[] coordsys = loadStrings("usercoordsys"+ i +".txt");
         float[] usercoordsys = float(split(coordsys[0],","));
         
         // The last two points are the coordinates of the calibration point 
-        // relative to the 0,0 (x,z) location of the floorplan. Required for a universal
+        // relative to the 0,0 (x,z) location of the floor plan. Required for a universal
         // coordinate system
         if(usercoordsys.length > 9){
-			cams[i].setUserCoordsys(
-				(usercoordsys[0]+usercoordsys[9]),usercoordsys[1], (usercoordsys[2]+usercoordsys[10]),	// Shifted Null point
-				usercoordsys[3], usercoordsys[4], (usercoordsys[5]+usercoordsys[10]),					// Translated X direction vector
-				(usercoordsys[6]+usercoordsys[9]), usercoordsys[7], usercoordsys[8]);					// Translated Z direction vector
-        }
-		else{
-			cams[i].setUserCoordsys(
-				usercoordsys[0],usercoordsys[1], usercoordsys[2],	// Null point
-				usercoordsys[3], usercoordsys[4], usercoordsys[5],	// X direction vector
-				usercoordsys[6], usercoordsys[7], usercoordsys[8]);	// Z direction vector, Y direction is orthogonal to both x,z
+			cams[i].xOffset = usercoordsys[9];
+			cams[i].zOffset = usercoordsys[10];
 		}
-    }    
+		
+		cams[i].setUserCoordsys(
+		usercoordsys[0],usercoordsys[1], usercoordsys[2],	// Null point
+		usercoordsys[3], usercoordsys[4], usercoordsys[5],	// X direction vector
+		usercoordsys[6], usercoordsys[7], usercoordsys[8]);	// Z direction vector, Y direction is orthogonal to both x,z
+    }
 
     // Load data from files into arrays
     loadMeans();    
@@ -279,7 +276,7 @@ public void draw() {
         }
     }
 
-//    debug();
+    debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -290,7 +287,7 @@ public void draw() {
       recieved = new JSONArray();	// Clear array
     }
     
-   // println("\n");
+   //println("\n");
    // frameCount = frameCount + 1;
    sendJoints();
 }
@@ -437,7 +434,10 @@ public void singlecam(){
         PVector com = new PVector();                // Centre of mass    // inside for loop to avoid overwritting old values
 
         cams[0].getCoM(userList[i], com);
-
+		
+		com.x = cams[0].xOffset + com.x;
+		com.z = cams[0].zOffset + com.z;
+		
         personIdent = new cPersonIdent();
 
         personIdent.cams.add(0, new cLocal(0, userList[i]));   
@@ -500,9 +500,12 @@ public void multicam(){
             for(int j=0; j<userList.length; j++){
 
                 // For each user get centre of mass and confidence
-		com0 = new PVector();                               // Centre of mass 1
+				com0 = new PVector();                               // Centre of mass 1
                 personId = userList[j];
                 cams[i].getCoM(userList[j], com0);
+				com0.x = cams[i].xOffset + com0.x;			// Add offset from universal null point
+				com0.z = cams[i].zOffset + com0.z;			// Add offset from universal null point
+				
                 singleCam[j] = new cSingleCam(personId, com0, features[j], jointPos[j]);
             }
         }
@@ -577,7 +580,7 @@ public void multicam(){
             personIdent.guesses = personIdents.get(inPerson0).guesses;
             personIdent.identified = personIdents.get(inPerson0).identified;
             personIdent.guessIndex = personIdents.get(inPerson0).guessIndex;
-	    personIdent.featDimMean = personIdents.get(inPerson0).featDimMean;
+			personIdent.featDimMean = personIdents.get(inPerson0).featDimMean;
             personIdent.comLast = personIdents.get(inPerson0).com;
             personIdents.remove(inPerson0);
         }

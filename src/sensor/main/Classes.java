@@ -6,10 +6,15 @@ import java.util.*;
 // Super: SimpleOpenNI
 // Provides constructor to instantiate SimpleOpenNI and other methods and callbacks
 class Camera extends SimpleOpenNI {
+	public float xOffset = 0;
+	public float zOffset = 0;
 
   // Class constructor
   Camera(PApplet p, int devIndex) {
 	super(devIndex, p, SimpleOpenNI.RUN_MODE_MULTI_THREADED);
+	
+	this.xOffset = xOffset;
+	this.zOffset = zOffset;
 
 	// Enable depth map generation
 	if (!this.enableDepth()) {
