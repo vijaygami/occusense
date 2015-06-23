@@ -296,20 +296,20 @@ public void draw() {
 			if (p.com.x == p.comLast.x && p.com.y == p.comLast.y && p.com.z == p.comLast.z){
 				if(p.cams.size() == 1){
                                         println("Person lost through COM freeze");
-					gpersonId = p.gpersonId;
-					if (gpersonId > 0){
+                                        
+					if (p.gpersonId > 0){
 						// If person lost in all cameras, update identified status to false on server
-						socket.emit("lost:person", gpersonId);
+						socket.emit("lost:person", p.gpersonId);
 					}
-					personIdents.remove(p);
-					break;
-					
+
+					p.identified = 0;
+                                        p.gpersonId = 0;
 				}
 			}
         }
     }
-     debug();
-     println("\n");
+     //debug();
+     //println("\n");
 
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -586,7 +586,7 @@ public void multicam(){
                 }
 
                 if (samePerson){
-                    println("Same person \tcom0:"+com0+"\tcom1"+com1);
+                  //  println("Same person \tcom0:"+com0+"\tcom1"+com1);
 
                     // Same person so compare confidence and add only one copy to global array
                     if(c0.featDim[12] < c1.featDim[12]){
@@ -1148,15 +1148,15 @@ void newUserRecieved(JSONArray recieved){
 
 
 void sendJoints(){
+	JSONArray pos;
 	JSONObject temp;
-	JSONArray pos = new JSONArray();		// Stores joint positions, COM's and gpersonID for all identified users
-    float user_dist = 0;  // distance a user has travelled since last frame
+        float user_dist = 0;  // distance a user has travelled since last frame
 	float[] COM;
 	float[][] jointPos;
 	
  	for(cPersonIdent p : personIdents){
 		if(p != null && p.jointPos[0] != null && p.identified == 1){
-						
+			pos = new JSONArray();		// Stores joint positions, COM's and gpersonID for all identified users
 			jointPos = new float[15][3]; 
 			COM = new float[3]; 
 			temp = new JSONObject();		// Stores joint positions, COM's and gpersonID for an identified user
@@ -1181,12 +1181,10 @@ void sendJoints(){
 			}  catch (JSONException e) {}
 			
 			pos.put(temp);
-            
+			socket.emit("person_COM",pos);
+            println(pos);
 		}
-    }
-	
-	socket.emit("person_COM",pos);
-    //println(pos);
+    }     
 }
 
 
