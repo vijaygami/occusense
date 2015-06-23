@@ -863,52 +863,48 @@ public void gesture(){
     angle_right = degrees( fradians );
       
     // Low centre of mass + 4.5 m/s speed to ground + head below centre of mass
-    
-  //  text(abs((p.comLast.y - p.com.y)/frameRate/frameRate) , 100 , 100);  // debugging
-   // if(p.com.y<500 && abs((p.comLast.y - p.com.y)/frameRate) > 3 && p.com.y+200 > p.jointPos[0].y){
-     if(abs((p.comLast.y - p.com.y)/frameRate/frameRate) > 0.3){
-      println("fall detection " + p.gpersonId); 
+     if(abs((p.comLast.y - p.com.y)/1000*frameRate*frameRate) > 7 && p.com.y < 700){
       text("fall detection",20,20);
-      //socket.emit("ges_perf",5, p.gpersonId);  //fall detected.
+      socket.emit("act_perf","fallen", p.gpersonId);  //fall detected.
+      socket.emit("ges_perf",4, p.gpersonId);  //fall detected.
     }
     
+        //  sleeping detection - com same as head - hips same as head
+    else if(p.com.y > 600 && p.com.y+200 > p.jointPos[0].y && p.jointPos[0].y < p.jointPos[4].y+200 && p.jointPos[0].y < p.jointPos[5].y+200){
+      text("sleep detection", 20, 20);
+      socket.emit("act_perf","lying", p.gpersonId);  
+
+
+    }
   
     // knees bent more than 50 degrees then sitting
-    else if((angle_right > 50) && angle_left > 50){ 
+    else if((angle_right > 50) && angle_left > 50 && abs((p.comLast.y - p.com.y)/1000*frameRate*frameRate) < 7){ 
        // println("s'h'itting " + p.gpersonId);
        text("sitting", 20, 20);
        socket.emit("act_perf","sitting", p.gpersonId);  //sitting detection
 
     }
 
-    //  sleeping detection
-    else if(p.com.y > 600 && p.com.y+200 > p.jointPos[0].y){
-      text("sleep detection", 20, 20);
-      socket.emit("act_perf","lying", p.gpersonId);  
-
-
-    }
-
       // speed detection
      else{
         // calculate speed from last com of previous frame 
-        com_speed = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z)/frameRate;  
-        
+        com_speed = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z)*frameRate;  
+
         // stationary detection
-//        if(user_dist < 5){
+//        if(com_speed*frameRate < 5){
 //          text("standing", 20, 20);
 //          socket.emit("act_perf","standing", p.gpersonId);  //walking detected
 //        }
 
          //  threshold determined by google 1.4m/s ave speed
-         if(com_speed < 3 && com_speed > 1.2){
+         if(com_speed < 700 && com_speed > 400 ){
           text("walking", 20, 20);
           socket.emit("act_perf","walking", p.gpersonId);  //walking detected
          }
          
-         else if(com_speed > 6){
+         else if(com_speed > 1200 && abs((p.comLast.y - p.com.y)*frameRate*frameRate) < 15){
            text("running", 20, 20);
-           socket.emit("act_perf","running", p.gpersonId);  //walking detected
+           // socket.emit("act_perf","running", p.gpersonId);  //walking detected
          }
      }
      
