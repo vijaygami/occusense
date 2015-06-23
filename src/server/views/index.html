@@ -40,10 +40,10 @@
 
     <!-- real time section -->
 	 <div class="row" ng-show="panel.isSelected(1)">
-      <div><label>    Real Time operation of the system</label></div>
+      
 	 	 <!-- create canvas division for the map-->
   		<div class="col-xs-12 col-sm-6 col-md-7">
-        
+        <div><label>    Real Time operation of the system</label></div>
 
   			<div class="panel panel-default">
 
@@ -117,11 +117,12 @@
 
               <!-- list of gestures performed dismissed by clicking the panel. -->
               <ul class="list-group">
-                <a class="list-group-item" ng-repeat="ges in currGes" ng-click="liveges.dismiss($index, currGes)">
-                  {{liveges.findcol(ges.userID, colours)}}
+                <a class="list-group-item" ng-repeat="ges in currGes" ng-click="liveges.dismiss($index, currGes)" ng-style="{'backgroundColor': liveges.backcol}">
+                  {{liveges.findcol(ges.userID, colours, ges.gesID)}}
                   <span ng-style="{'color': liveges.tempcol}" style="font-size:2.2em;" class="{{gestures[ges.gesID].icon}}" aria-hidden="true"></span>
-                  {{liveges.findname(ges.userID, people)}} {{gestures[ges.gesID].performed}}
-                  <em class="pull-right">{{ges.timestamp|date:'h:mma'}}</em>
+                  <!-- colons unbind one the data is set. avoids names dissappearing when someone is unidentified -->
+                  {{::liveges.findname(ges.userID, people)}} {{gestures[ges.gesID].performed}}
+                  <em class="pull-right">{{ges.timestamp|date:'h:mm:ssa'}}</em>
                 </a>
                 
               </ul>

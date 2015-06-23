@@ -74,16 +74,17 @@
 	    //socket to push to currGes (the live gesture list) each time a gesture is performed
 	    socket.on('live_ges', function(gID, uID){
 	    	console.log("gesture performed");
-	    	$scope.currGes.push({gesID: gID, userID: uID, timestamp: Date.now});
+	    	var temp =Date.now();
+	    	$scope.currGes.push({gesID: gID, userID: uID, timestamp: temp});
 
 	    	if(gID == 0){
 	    		for(var k=0; k<$scope.people.length;k++){
 	    			if(uID == $scope.people[k].personID){
-	    				if( Math.sqrt( Math.pow($scope.people[k].coord.x-bulbs[0].cx, 2) + Math.pow($scope.people[k].coord.y-bulbs[0].cy, 2))
-	    					< Math.sqrt( Math.pow($scope.people[k].coord.x-bulbs[1].cx, 2) + Math.pow($scope.people[k].coord.y-bulbs[1].cy, 2))){
+	    				if( Math.sqrt( Math.pow(mapoffset-$scope.people[k].coord.x/xscale-bulbs[0].cx, 2) + Math.pow(mapoffset-$scope.people[k].coord.y/yscale-bulbs[0].cy, 2))
+	    					< Math.sqrt( Math.pow(mapoffset-$scope.people[k].coord.x/xscale-bulbs[1].cx, 2) + Math.pow(mapoffset-$scope.people[k].coord.y/yscale-bulbs[1].cy, 2))){
 	    					bulbs[0].status = !bulbs[0].status;
 	    				}
-	    				else{bults[1].status = !bulbs[1].status;}
+	    				else{bulbs[1].status = !bulbs[1].status;}
 	    			}
 	    		}
 	    	}
@@ -304,8 +305,13 @@
 
 	//controller for animating real time live gestures
 	m_app.controller('LivegesController', function(){
-		
+		//colour of symbol
 		this.tempcol = "";
+
+		//colour of pop ups background. red if health/warning
+		this.backcol = "";
+
+
 
 		//function to delete a live gesture from currGes when it is clicked/dismissed on gui
 		this.dismiss = function(i, array){
@@ -323,14 +329,19 @@
 			}
 		};
 
-		//funciton to find colour from userID
-		this.findcol = function(userID, col_array){
+		//funciton to find colour from userID. also set backgorund colour to red if fallen gesture
+		this.findcol = function(userID, col_array, gesID){
 
 			for(var i=0; i<col_array.length; i++){
 				if(userID == col_array[i].ID){
 					this.tempcol = col_array[i].colour;
 				}
-			}		
+			}
+
+			if(gesID == 4){
+				this.backcol = "#f05868";
+			}
+			else{this.backcol="white";}
 		}
 
 	});
@@ -752,8 +763,8 @@
 
 							//if the person is identified in p_array and is still identified in peopleInfo, simply update the coordinates
 							if(value.personID == p_array[i].id && value.identified && p_array[i].identified){
-								p_array[i].x = value.coord.x/20;
-								p_array[i].y = value.coord.y/20;
+								p_array[i].x = mapoffset -value.coord.x/xscale;
+								p_array[i].y = value.coord.y/yscale;
 								p_array[i].alpha = 1;
 								// value.coord.x=value.coord.x+1; /*TEST ANIMATION*/
 								// if (value.coord.x > stage.canvas.width) { value.coord.x = 0; }
@@ -763,8 +774,8 @@
 							//if the person is identified in the database peopleInfo, but not identified in p_array, add to canvas and update coordinates
 							if(value.persionID == p_array[i].id && value.identified && !p_array[i].identified){
 								console.log("called");
-								p_array[i].x=value.coord.x;
-								p_array[i].y=value.coord.y;
+								p_array[i].x=mapoffset -value.coord.x/xscale;
+								p_array[i].y=value.coord.y/yscale;
 								
 								//stage.addChild(p_array[i]);
 
@@ -855,8 +866,8 @@
 							container.name =value.personName;
 							container.id = value.personID;
 							container.color = avail_colour;
-							container.x = value.coord.x; 
-							container.y = value.coord.y;
+							container.x = mapoffset -value.coord.x/xscale; 
+							container.y = mapoffset -value.coord.y/yscale;
 							// container.identified = value.identified;
 							container.identified = true;
 							console.log(container.color);
@@ -927,6 +938,11 @@
 							stage.update();
 						};
 
+						//TEST
+						var test = new createjs.Shape();
+						test.graphics.beginFill("red").drawCircle(0, 0, 25);
+						test.x = 725;
+						test.y = 400;
 
 						//set mouse off handler
 						floor.on("mousedown", handleMouseOff);
@@ -1020,7 +1036,9 @@
 					{name: "Falling", ID: 4, performed: "has fallen, call emergency services!", description: "A warning to indicate when someone has fallen", icon: "glyphicon glyphicon-plus-sign"},
 					];
 	var bulbs = [{cx: 120, cy: 200, status: false}, {cx: 400, cy: 200, status: false}];
-
+	var xscale = 14;
+	var yscale = 14;
+	var mapoffset = 700;
 	//dummy number of people identified
 	var n_people = 3;
 	
