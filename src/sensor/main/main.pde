@@ -295,6 +295,7 @@ public void draw() {
         if(p.comLast != null && p.com != null){
 			if (p.com.x == p.comLast.x && p.com.y == p.comLast.y && p.com.z == p.comLast.z){
 				if(p.cams.size() == 1){
+                                        println("Person lost through COM freeze");
 					gpersonId = p.gpersonId;
 					if (gpersonId > 0){
 						// If person lost in all cameras, update identified status to false on server
@@ -307,8 +308,9 @@ public void draw() {
 			}
         }
     }
-    // debug();
-	
+     debug();
+     println("\n");
+
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
 	  println("New user data received");
@@ -318,7 +320,6 @@ public void draw() {
       recieved = new JSONArray();	// Clear array
     }
     
-   // println("\n");
    frameCount = frameCount + 1;
   // println("frameCount:" + frameCount);
    sendJoints();
@@ -571,7 +572,7 @@ public void multicam(){
             if (c1.personId != -1){
                 // Find euclidean distance
                 com1 = c1.com;
-                eucDist = dist(com0.x,com0.y,com0.z,com1.x,com1.y,com1.z);
+                eucDist = dist(com0.x,com0.z,com1.x,com1.z);
 
                 inPerson1 = findPersonIdent(1, c1.personId);
 
@@ -585,7 +586,7 @@ public void multicam(){
                 }
 
                 if (samePerson){
-                    //println("Same person \tcom0:"+com0+"\tcom1"+com1);
+                    println("Same person \tcom0:"+com0+"\tcom1"+com1);
 
                     // Same person so compare confidence and add only one copy to global array
                     if(c0.featDim[12] < c1.featDim[12]){
