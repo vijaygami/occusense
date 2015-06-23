@@ -117,11 +117,13 @@
 
               <!-- list of gestures performed dismissed by clicking the panel. -->
               <ul class="list-group">
-                <a href="#" class="list-group-item" ng-repeat="ges in currGes" ng-click="liveges.dismiss($index, currGes)">
+                <a class="list-group-item" ng-repeat="ges in currGes" ng-click="liveges.dismiss($index, currGes)">
                   {{liveges.findcol(ges.userID, colours)}}
                   <span ng-style="{'color': liveges.tempcol}" style="font-size:2.2em;" class="{{gestures[ges.gesID].icon}}" aria-hidden="true"></span>
-                  {{liveges.findname(ges.userID, people)}} {{gestures[ges.gesID].performed}} {{gestures[ges.gesID].timestamp|date:'MM/dd/yyyy @ h:mma'}}
+                  {{liveges.findname(ges.userID, people)}} {{gestures[ges.gesID].performed}}
+                  <em class="pull-right">{{ges.timestamp|date:'h:mma'}}</em>
                 </a>
+                
               </ul>
 
   			  	</div>

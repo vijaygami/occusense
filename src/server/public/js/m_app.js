@@ -76,6 +76,18 @@
 	    	console.log("gesture performed");
 	    	$scope.currGes.push({gesID: gID, userID: uID, timestamp: Date.now});
 
+	    	if(gID == 0){
+	    		for(var k=0; k<$scope.people.length;k++){
+	    			if(uID == $scope.people[k].personID){
+	    				if( Math.sqrt( Math.pow($scope.people[k].coord.x-bulbs[0].cx, 2) + Math.pow($scope.people[k].coord.y-bulbs[0].cy, 2))
+	    					< Math.sqrt( Math.pow($scope.people[k].coord.x-bulbs[1].cx, 2) + Math.pow($scope.people[k].coord.y-bulbs[1].cy, 2))){
+	    					bulbs[0].status = !bulbs[0].status;
+	    				}
+	    				else{bults[1].status = !bulbs[1].status;}
+	    			}
+	    		}
+	    	}
+
 	    });
 	   	
 	});
@@ -663,6 +675,21 @@
 					//create array to store shape objects for each person with attributes .name .id .color etc
 					var p_array = [];
 
+					//create light bulb glows
+					//glows for the lights
+					var glow1 = new createjs.Shape();
+					glow1.graphics.beginFill("yellow").drawCircle(0, 0, 70);
+					glow1.x = bulbs[0].cx +13;
+					glow1.y = bulbs[0].cy +13;
+					glow1.alpha = 0;
+
+					var glow2 = new createjs.Shape();
+					glow2.graphics.beginFill("yellow").drawCircle(0, 0, 70);
+					glow2.x = bulbs[1].cx+13;
+					glow2.y = bulbs[1].cy+13;
+					glow2.alpha = 0;
+
+
 					//initialise map once
 					map_init();
 
@@ -681,10 +708,27 @@
 
 						//update all current user positions or remove/add existing users to canvas
 						user_update();
+
+						//update the lights
+						light_update();
 					}					
 				}
 				
+				function light_update(){
+					if(bulbs[0].status==true){
+						glow1.alpha=0.4;
+					}
+					else if(bulbs[0].status==false){
+						glow1.alpha=0;
+					}
 
+					if(bulbs[1].status==true){
+						glow2.alpha=0.4;
+					}
+					else if(bulbs[1].status==false){
+						glow2.alpha=0;
+					}
+				};
 
 
 				//function to update existing users coordinates, remove any unidentified users from the canvas, add existing reidentified users to canvas
@@ -855,19 +899,39 @@
 
 
 				    	var floor = new createjs.Bitmap("/images/floorplan.png"); //floor play
+				    	var light1 = new createjs.Bitmap("/images/LightBulb.png");
+				    	var light2 = new createjs.Bitmap("/images/LightBulb.png");
 
-						//Add the floor plan
+
+						//scale the floor image
 						floor.image.onload = function(){
 							var scale = stage.canvas.width/floor.image.width;
+							console.log(scale);
 							floor.scaleX = floor.scaleY = scale;
 							stage.update();
 
 						};
-					
+
+						//scale the light image
+						light1.image.onload = function(){
+							light1.scaleX = light1.scaleY = 0.03;
+							light1.x = bulbs[0].cx;
+							light1.y = bulbs[0].cy;
+							stage.update();
+						};
+						
+						light2.image.onload = function(){
+							light2.scaleX = light2.scaleY = 0.03;
+							light2.x = bulbs[1].cx;
+							light2.y = bulbs[1].cy;
+							stage.update();
+						};
+
+
 						//set mouse off handler
 						floor.on("mousedown", handleMouseOff);
 
-						stage.addChild(floor); //add floorplan to stage
+						stage.addChild(floor, glow1, glow2, light1, light2); //add floorplan to stage
 						stage.update();
 				};
 
@@ -955,6 +1019,7 @@
 					{name: "Channel", ID: 3, performed: "is changing the TV channel", description: "A gesture to change the TV channel", icon: "glyphicon glyphicon-blackboard"},
 					{name: "Falling", ID: 4, performed: "has fallen, call emergency services!", description: "A warning to indicate when someone has fallen", icon: "glyphicon glyphicon-plus-sign"},
 					];
+	var bulbs = [{cx: 120, cy: 200, status: false}, {cx: 400, cy: 200, status: false}];
 
 	//dummy number of people identified
 	var n_people = 3;
