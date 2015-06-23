@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 2;
+int numCams = 1;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -43,7 +43,7 @@ float [] means = new float[12];             // Used for calculating mean of curr
  
 SocketIO socket;
 int requestedID=0;                          // ID to be returned by the server once requested. 
-int IdAvailable = 0;						// 1 means ID is not currently used on any other node, 0 means ID is taken
+boolean IdAvailable = false;						// 1 means ID is not currently used on any other node, 0 means ID is taken
 Object lock = new Object();					// Used to freeze code untill requests met to by server
 JSONArray outgoing = new JSONArray();		// Used to transmit user training data to other nodes
 JSONArray recieved = new JSONArray();
@@ -105,7 +105,6 @@ PVector facingV = new PVector(0, 1); //use the normal to the z-direction (facing
 float fradians = 0;
 float angle_left = 0;
 float angle_right = 0;
-float user_dist = 0;  // distance a user has travelled since last frame
 float com_speed = 0;  // speed at which each user has travelled
 //===========================================================================//
 
@@ -117,7 +116,7 @@ public void setup() {
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     
     socket = new SocketIO();
-    try{socket.connect("http://129.31.215.242:3000/nodes", new IOCallback(){
+    try{socket.connect("http://129.31.237.235:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
 		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
 		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
@@ -132,7 +131,14 @@ public void setup() {
 		  }
 		  
 		  if(event.equals("res_checkUser")){
-			IdAvailable = ((Integer)args[0]);
+			// 1 means ID is not currently used on any other node, 0 means ID is taken
+			if(((Integer)args[0]) == 1){
+				IdAvailable = true;
+			}
+			else{
+				IdAvailable = false;
+			}
+			
 			synchronized(lock) {lock.notify();}	// Unpause code execeution
 		  }
 		  
@@ -301,7 +307,7 @@ public void draw() {
 			}
         }
     }
-    debug();
+    // debug();
 	
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -312,9 +318,9 @@ public void draw() {
       recieved = new JSONArray();	// Clear array
     }
     
-   println("\n");
+   // println("\n");
    frameCount = frameCount + 1;
-   println("frameCount:" + frameCount);
+  // println("frameCount:" + frameCount);
    sendJoints();
 }
 
@@ -659,7 +665,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 250;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 2500;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -815,7 +821,7 @@ public void gesture(){
       evaluateSkeleton(personIdents.get(index).jointPos);
     
       // save pose after 6s
-      if (millis() - start_gesture_train > 6000){
+      if (millis() - start_gesture_train > 9000){
         saveGesture(gestureId);
         train_gesture = false;
         train_once = true;
@@ -886,8 +892,7 @@ public void gesture(){
       // speed detection
      else{
         // calculate speed from last com of previous frame 
-        user_dist = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z);
-        com_speed = user_dist/frameRate;  
+        com_speed = dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z)/frameRate;  
         
         // stationary detection
 //        if(user_dist < 5){
@@ -896,13 +901,13 @@ public void gesture(){
 //        }
 
          //  threshold determined by google 1.4m/s ave speed
-         if(com_speed < 2.5 && com_speed > 0.8){
+         if(com_speed < 3 && com_speed > 1.2){
           text("walking", 20, 20);
           socket.emit("act_perf","walking", p.gpersonId);  //walking detected
          }
          
-         else if(com_speed > 4){
-           text("walking fast", 20, 20);
+         else if(com_speed > 6){
+           text("running", 20, 20);
            socket.emit("act_perf","running", p.gpersonId);  //walking detected
          }
      }
@@ -915,8 +920,8 @@ public void gesture(){
     // detect gestures for one person
     if(voluntary_start){
         index = findLocalIdent(globalperson);  // update index of global person in global array
-    
-        if(cams[personIdents.get(index).cams.get(0).camId].isTrackingSkeleton(personIdents.get(index).cams.get(0).personId)){    
+        if(index != -1){
+          if(cams[personIdents.get(index).cams.get(0).camId].isTrackingSkeleton(personIdents.get(index).cams.get(0).personId)){    
             // if we are tracking the global person
             evaluateSkeleton(personIdents.get(index).jointPos);  // call evaluate skeleton functions
             evaluateCost();                                      // work out cost functions
@@ -926,6 +931,7 @@ public void gesture(){
                 voluntary_start = false;
                 println("timeout");
             }
+          }
         }
         else{
             voluntary_start = false;
@@ -1147,7 +1153,7 @@ void newUserRecieved(JSONArray recieved){
 void sendJoints(){
 	
 	JSONArray pos = new JSONArray();		// Stores joint positions, COM's and gpersonID for all identified users
-	
+        float user_dist = 0;  // distance a user has travelled since last frame
 
  	for(cPersonIdent p : personIdents){
 		if(p != null && p.jointPos[0] != null && p.identified == 1){
