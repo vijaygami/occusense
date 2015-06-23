@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <opencv_storage>
 <my_random_trees type_id="opencv-ml-random-trees">
-  <nclasses>2</nclasses>
-  <nsamples>2000</nsamples>
+  <nclasses>3</nclasses>
+  <nsamples>1151</nsamples>
   <nactive_vars>3</nactive_vars>
   <oob_error>0.</oob_error>
   <var_importance type_id="opencv-matrix">
@@ -10,8 +10,8 @@
     <cols>13</cols>
     <dt>f</dt>
     <data>
-      0. 4.84135091e-001 1.49437055e-001 0. 2.22108498e-001 0. 0. 0. 0.
-      6.24360293e-002 0. 8.18833113e-002 0.</data></var_importance>
+      0. 0. 1.16104871e-001 4.38202262e-001 3.25842708e-001 0. 0. 0. 0.
+      1.19850188e-001 0. 0. 0.</data></var_importance>
   <ntrees>5</ntrees>
   <is_classifier>1</is_classifier>
   <var_all>13</var_all>
@@ -21,15 +21,15 @@
   <training_params>
     <use_surrogates>0</use_surrogates>
     <max_categories>10</max_categories>
-    <max_depth>3</max_depth>
+    <max_depth>4</max_depth>
     <min_sample_count>4</min_sample_count>
     <cross_validation_folds>0</cross_validation_folds>
     <priors type_id="opencv-matrix">
       <rows>1</rows>
-      <cols>2</cols>
+      <cols>3</cols>
       <dt>d</dt>
       <data>
-        1. 1.</data></priors></training_params>
+        1. 1. 1.</data></priors></training_params>
   <var_type>
     0 0 0 0 0 0 0 0 0 0 0 0 0</var_type>
   <cat_count type_id="opencv-matrix">
@@ -37,37 +37,63 @@
     <cols>1</cols>
     <dt>i</dt>
     <data>
-      2</data></cat_count>
+      3</data></cat_count>
   <cat_map type_id="opencv-matrix">
     <rows>1</rows>
-    <cols>2</cols>
+    <cols>3</cols>
     <dt>i</dt>
     <data>
-      1 2</data></cat_map>
+      0 1 2</data></cat_map>
   <trees>
     <_>
       <best_tree_idx>-1</best_tree_idx>
       <nodes>
         <_>
           <depth>0</depth>
-          <sample_count>2000</sample_count>
+          <sample_count>1151</sample_count>
           <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
+          <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
-          <node_risk>999.</node_risk>
+          <node_risk>157.</node_risk>
           <tree_risk>0.</tree_risk>
           <tree_error>0.</tree_error>
           <splits>
-            <_><var>1</var>
-              <quality>2000.</quality>
-              <le>3.1616830444335937e+002</le></_></splits></_>
+            <_><var>9</var>
+              <quality>1.1470147705078125e+003</quality>
+              <le>2.0189916992187500e+002</le></_></splits></_>
         <_>
           <depth>1</depth>
-          <sample_count>1001</sample_count>
+          <sample_count>157</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>1.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>2</var>
+              <quality>157.</quality>
+              <le>2.1894696044921875e+002</le></_></splits></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>156</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>1</sample_count>
           <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
+          <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
@@ -76,9 +102,35 @@
           <tree_error>0.</tree_error></_>
         <_>
           <depth>1</depth>
-          <sample_count>999</sample_count>
-          <value>2.</value>
+          <sample_count>994</sample_count>
+          <value>1.</value>
           <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>1.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>2</var>
+              <quality>994.</quality>
+              <le>2.2439338684082031e+002</le></_></splits></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>993</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>1</sample_count>
+          <value>0.</value>
+          <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
@@ -90,24 +142,24 @@
       <nodes>
         <_>
           <depth>0</depth>
-          <sample_count>2000</sample_count>
-          <value>2.</value>
+          <sample_count>1151</sample_count>
+          <value>1.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
-          <node_risk>963.</node_risk>
+          <node_risk>158.</node_risk>
           <tree_risk>0.</tree_risk>
           <tree_error>0.</tree_error>
           <splits>
-            <_><var>4</var>
-              <quality>2000.</quality>
-              <le>5.1896203613281250e+002</le></_></splits></_>
+            <_><var>3</var>
+              <quality>1.1470080566406250e+003</quality>
+              <le>5.0905697631835938e+002</le></_></splits></_>
         <_>
           <depth>1</depth>
-          <sample_count>963</sample_count>
-          <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
+          <sample_count>156</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
@@ -116,38 +168,9 @@
           <tree_error>0.</tree_error></_>
         <_>
           <depth>1</depth>
-          <sample_count>1037</sample_count>
-          <value>2.</value>
+          <sample_count>995</sample_count>
+          <value>1.</value>
           <norm_class_idx>1</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>0.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error></_></nodes></_>
-    <_>
-      <best_tree_idx>-1</best_tree_idx>
-      <nodes>
-        <_>
-          <depth>0</depth>
-          <sample_count>2000</sample_count>
-          <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>998.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error>
-          <splits>
-            <_><var>11</var>
-              <quality>1.9960079345703125e+003</quality>
-              <le>4.4410842895507812e+002</le></_></splits></_>
-        <_>
-          <depth>1</depth>
-          <sample_count>1004</sample_count>
-          <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
@@ -155,14 +178,14 @@
           <tree_risk>0.</tree_risk>
           <tree_error>0.</tree_error>
           <splits>
-            <_><var>1</var>
-              <quality>1004.</quality>
-              <le>3.1630313110351562e+002</le></_></splits></_>
+            <_><var>3</var>
+              <quality>995.</quality>
+              <le>5.2181115722656250e+002</le></_></splits></_>
         <_>
           <depth>2</depth>
-          <sample_count>1002</sample_count>
+          <sample_count>993</sample_count>
           <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
+          <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
@@ -172,19 +195,8 @@
         <_>
           <depth>2</depth>
           <sample_count>2</sample_count>
-          <value>2.</value>
-          <norm_class_idx>1</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>0.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error></_>
-        <_>
-          <depth>1</depth>
-          <sample_count>996</sample_count>
-          <value>2.</value>
-          <norm_class_idx>1</norm_class_idx>
+          <value>0.</value>
+          <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
@@ -196,89 +208,259 @@
       <nodes>
         <_>
           <depth>0</depth>
-          <sample_count>2000</sample_count>
+          <sample_count>1151</sample_count>
           <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>142.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>4</var>
+              <quality>1.1450220947265625e+003</quality>
+              <le>5.0803900146484375e+002</le></_></splits></_>
+        <_>
+          <depth>1</depth>
+          <sample_count>141</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>1.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>3</var>
+              <quality>141.</quality>
+              <le>5.0350555419921875e+002</le></_></splits></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>1</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>140</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>1</depth>
+          <sample_count>1010</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>2.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>4</var>
+              <quality>1010.</quality>
+              <le>5.2181054687500000e+002</le></_></splits></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>1008</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>2</sample_count>
+          <value>0.</value>
           <norm_class_idx>0</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
-          <node_risk>987.</node_risk>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_></nodes></_>
+    <_>
+      <best_tree_idx>-1</best_tree_idx>
+      <nodes>
+        <_>
+          <depth>0</depth>
+          <sample_count>1151</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>149.</node_risk>
           <tree_risk>0.</tree_risk>
           <tree_error>0.</tree_error>
           <splits>
-            <_><var>1</var>
-              <quality>2000.</quality>
-              <le>3.1571057128906250e+002</le></_></splits></_>
+            <_><var>4</var>
+              <quality>1.1450214843750000e+003</quality>
+              <le>5.0841503906250000e+002</le></_></splits></_>
+        <_>
+          <depth>1</depth>
+          <sample_count>148</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>1.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>3</var>
+              <quality>148.</quality>
+              <le>5.0350555419921875e+002</le></_></splits></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>1</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>147</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>1</depth>
+          <sample_count>1003</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>2.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>3</var>
+              <quality>1003.</quality>
+              <le>5.2181115722656250e+002</le></_></splits></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>1001</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>2</sample_count>
+          <value>0.</value>
+          <norm_class_idx>0</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_></nodes></_>
+    <_>
+      <best_tree_idx>-1</best_tree_idx>
+      <nodes>
+        <_>
+          <depth>0</depth>
+          <sample_count>1151</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>139.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>3</var>
+              <quality>1.1450223388671875e+003</quality>
+              <le>5.0803890991210937e+002</le></_></splits></_>
+        <_>
+          <depth>1</depth>
+          <sample_count>138</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>1.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error>
+          <splits>
+            <_><var>3</var>
+              <quality>138.</quality>
+              <le>5.0354071044921875e+002</le></_></splits></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>1</sample_count>
+          <value>1.</value>
+          <norm_class_idx>1</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
+        <_>
+          <depth>2</depth>
+          <sample_count>137</sample_count>
+          <value>2.</value>
+          <norm_class_idx>2</norm_class_idx>
+          <Tn>0</Tn>
+          <complexity>0</complexity>
+          <alpha>0.</alpha>
+          <node_risk>0.</node_risk>
+          <tree_risk>0.</tree_risk>
+          <tree_error>0.</tree_error></_>
         <_>
           <depth>1</depth>
           <sample_count>1013</sample_count>
           <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>0.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error></_>
-        <_>
-          <depth>1</depth>
-          <sample_count>987</sample_count>
-          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>
-          <node_risk>0.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error></_></nodes></_>
-    <_>
-      <best_tree_idx>-1</best_tree_idx>
-      <nodes>
-        <_>
-          <depth>0</depth>
-          <sample_count>2000</sample_count>
-          <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>963.</node_risk>
+          <node_risk>2.</node_risk>
           <tree_risk>0.</tree_risk>
           <tree_error>0.</tree_error>
           <splits>
-            <_><var>7</var>
-              <quality>1.3620765380859375e+003</quality>
-              <le>2.9142846679687500e+002</le></_></splits></_>
-        <_>
-          <depth>1</depth>
-          <sample_count>629</sample_count>
-          <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>24.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error>
-          <splits>
-            <_><var>9</var>
-              <quality>629.</quality>
-              <le>2.0652859497070312e+002</le></_></splits></_>
+            <_><var>5</var>
+              <quality>1013.</quality>
+              <le>3.3739807128906250e+002</le></_></splits></_>
         <_>
           <depth>2</depth>
-          <sample_count>605</sample_count>
+          <sample_count>1011</sample_count>
           <value>1.</value>
-          <norm_class_idx>0</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>0.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error></_>
-        <_>
-          <depth>2</depth>
-          <sample_count>24</sample_count>
-          <value>2.</value>
           <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
@@ -287,36 +469,10 @@
           <tree_risk>0.</tree_risk>
           <tree_error>0.</tree_error></_>
         <_>
-          <depth>1</depth>
-          <sample_count>1371</sample_count>
-          <value>2.</value>
-          <norm_class_idx>1</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>432.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error>
-          <splits>
-            <_><var>2</var>
-              <quality>1371.</quality>
-              <le>2.2318772888183594e+002</le></_></splits></_>
-        <_>
           <depth>2</depth>
-          <sample_count>432</sample_count>
-          <value>1.</value>
+          <sample_count>2</sample_count>
+          <value>0.</value>
           <norm_class_idx>0</norm_class_idx>
-          <Tn>0</Tn>
-          <complexity>0</complexity>
-          <alpha>0.</alpha>
-          <node_risk>0.</node_risk>
-          <tree_risk>0.</tree_risk>
-          <tree_error>0.</tree_error></_>
-        <_>
-          <depth>2</depth>
-          <sample_count>939</sample_count>
-          <value>2.</value>
-          <norm_class_idx>1</norm_class_idx>
           <Tn>0</Tn>
           <complexity>0</complexity>
           <alpha>0.</alpha>

@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 1;
+int numCams = 2;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 150;             // Number of frames of data to collect
@@ -863,7 +863,7 @@ public void gesture(){
     angle_right = degrees( fradians );
       
     // Low centre of mass + 4.5 m/s speed to ground + head below centre of mass
-     if(abs((p.comLast.y - p.com.y)/1000*frameRate*frameRate) > 7 && p.com.y < 700){
+     if(abs((p.comLast.y - p.com.y)/1000*frameRate*frameRate) > 7 && p.com.y < 700 &&  p.jointPos[0].y < 700){
       text("fall detection",20,20);
       socket.emit("act_perf","fallen", p.gpersonId);  //fall detected.
       socket.emit("ges_perf",4, p.gpersonId);  //fall detected.
@@ -1147,15 +1147,18 @@ void newUserRecieved(JSONArray recieved){
 
 
 void sendJoints(){
-	
+	JSONObject temp;
 	JSONArray pos = new JSONArray();		// Stores joint positions, COM's and gpersonID for all identified users
-        float user_dist = 0;  // distance a user has travelled since last frame
-
+    float user_dist = 0;  // distance a user has travelled since last frame
+	float[] COM;
+	float[][] jointPos;
+	
  	for(cPersonIdent p : personIdents){
 		if(p != null && p.jointPos[0] != null && p.identified == 1){
-			float[][] jointPos = new float[15][3]; 
-			float[] COM = new float[3]; 
-			JSONObject temp = new JSONObject();		// Stores joint positions, COM's and gpersonID for an identified user
+						
+			jointPos = new float[15][3]; 
+			COM = new float[3]; 
+			temp = new JSONObject();		// Stores joint positions, COM's and gpersonID for an identified user
 			
 		    user_dist = abs(dist(p.comLast.x, p.comLast.z, p.com.x, p.com.z))/1000;
 		    if (user_dist < 0.01){
@@ -1182,6 +1185,7 @@ void sendJoints(){
     }
 	
 	socket.emit("person_COM",pos);
+    //println(pos);
 }
 
 
