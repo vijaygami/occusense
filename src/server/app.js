@@ -339,8 +339,8 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 				//update COM field
 				doc.coord.x = data[k].COM[0];
-				doc.coord.y = data[k].COM[1];
-				doc.coord.z = data[k].COM[2];
+				doc.coord.z = data[k].COM[1];
+				doc.coord.y = data[k].COM[2];
 				
 				//update jointPosition
 				doc.joints.head.x = data[k].joint[0][0];
