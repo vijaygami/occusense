@@ -29,7 +29,7 @@ int frameCount = 0;
 int numCams = 2;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
-int savesize = 150;             // Number of frames of data to collect
+int savesize = 200;             // Number of frames of data to collect
 boolean lostUser = false;
 
 CvRTrees forest;    // Forest object
@@ -48,7 +48,7 @@ Object lock = new Object();					// Used to freeze code untill requests met to by
 JSONArray outgoing = new JSONArray();		// Used to transmit user training data to other nodes
 JSONArray recieved = new JSONArray();
 
-boolean enableSave = true;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
+boolean enableSave = false;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
 boolean debugForceNew = false;	// Force new user detection for debug purposes
 boolean saving = false;			// Keeps track of whether or not a new user is currently being saved
 boolean dataAvailable = false;	// True when new user data is broadcast from server 
@@ -138,7 +138,6 @@ public void setup() {
 			else{
 				IdAvailable = false;
 			}
-			
 			synchronized(lock) {lock.notify();}	// Unpause code execeution
 		  }
 		  
@@ -308,8 +307,8 @@ public void draw() {
 			}
         }
     }
-     //debug();
-     //println("\n");
+     debug();
+     println("\n");
 
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -586,7 +585,7 @@ public void multicam(){
                 }
 
                 if (samePerson){
-                  //  println("Same person \tcom0:"+com0+"\tcom1"+com1);
+                    println("Same person \tcom0:"+com0+"\tcom1"+com1);
 
                     // Same person so compare confidence and add only one copy to global array
                     if(c0.featDim[12] < c1.featDim[12]){
@@ -666,7 +665,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 2500;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 250;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -692,7 +691,7 @@ public void identify(){
 				
                 else {
                     p.guesses[p.guessIndex] = mode(Arrays.copyOfRange(p.guesses, 0, 20));		// Find the mode (most frequent) guess
-					
+					println("Checking ID: " + p.guesses[p.guessIndex] + " availability with server");
 					socket.emit("checkUser" , p.guesses[p.guessIndex]);							// Check to see if ID is free or taken by other nodes
 					synchronized(lock) {try {lock.wait();} catch (InterruptedException e) {}}  	// Wait here while request met 
 					
@@ -720,7 +719,7 @@ public void identify(){
 						}
 					}
 					
-					if( (mse > mseThresh) || debugForceNew ){
+					if( ((mse > mseThresh) && (mse < 10000)) || debugForceNew ){        // mse < 10,000 check since sometimes ghosts with feature size all zeroes get saved.
 						// New user identified. Request new global person ID from server
 						println("New user detected, requested unique ID");
 						socket.emit("req_new_ID");
@@ -1067,6 +1066,11 @@ public void onLostUser(SimpleOpenNI context,int userId) {
     context.stopTrackingSkeleton(userId);           // Stop tracking user
     println("Skeleton tracking stopped for user: " + userId);
 
+    println("LOST");
+    println("LOST");
+    println("LOST");
+    println("LOST");
+    println("LOST");
 
     lostPersonId = userId;
     lostUser = true;
@@ -1182,7 +1186,7 @@ void sendJoints(){
 			
 			pos.put(temp);
 			socket.emit("person_COM",pos);
-            println(pos);
+           // println(pos);
 		}
     }     
 }
