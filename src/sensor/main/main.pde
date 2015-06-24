@@ -48,7 +48,7 @@ Object lock = new Object();					// Used to freeze code untill requests met to by
 JSONArray outgoing = new JSONArray();		// Used to transmit user training data to other nodes
 JSONArray recieved = new JSONArray();
 
-boolean enableSave = false;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
+boolean enableSave = true;      // Disable saving of new user to prevent acidentally saving users during debuging stages. (until threshold for new user is tuned properly)
 boolean debugForceNew = false;	// Force new user detection for debug purposes
 boolean saving = false;			// Keeps track of whether or not a new user is currently being saved
 boolean dataAvailable = false;	// True when new user data is broadcast from server 
@@ -307,8 +307,8 @@ public void draw() {
 			}
         }
     }
-     debug();
-     println("\n");
+     //debug();
+     //println("\n");
 
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -665,7 +665,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 250;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 400;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -709,6 +709,17 @@ public void identify(){
 						println("User detected: " + p.gpersonId);
 						socket.emit("identified" , p.gpersonId);
 						println("Sent ID to server");
+						
+						
+						// reset means and count for the case when a user ;eaves and re -enters within 10 seconds and they want to be re-identified
+						p.guessIndex = 0;							// Reset guess count
+						for (int i=0; i<12;i++){
+							p.featDimMean[i] = 0;					// Reset means
+						}
+						
+						
+						
+						
 					}
 					
 					if( ((mse < mseThresh) && (!IdAvailable)) && !debugForceNew ){
