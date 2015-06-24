@@ -3,6 +3,14 @@
 //next 2 lines are to ensure the activity cant changed within x seconds of being changed
 var act_count = 0;
 setInterval(function(){act_count++;},1000);
+
+//ensure gestures dont occur multiply 
+var ges_count = 0;
+setInterval(function(){ges_count++;},1000);
+
+//global to say when falling is recieved
+var fallen = false;
+setInterval(function(){fallen = false;},10000);
 /**
  * Module dependencies.
  */
@@ -324,8 +332,8 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 
 		var size = Object.keys(data).length;
 
-		for (i = 0; i < size; i++){
-    		
+		for (var i = 0; i < size; i++){
+    		console.log(i);
     		pID = data[i].id;
 
     		//console.log('Updating COM and jointPosition for person with id: ' + pID);
@@ -407,6 +415,7 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 				doc.save();
 
 				//console.log('lefthand '+doc.joints.lefthand.y);
+				//console.log("COM for user"+doc.personID+" "+doc.coord.x+" "+doc.coord.y);
     		});
 			var n = i+1;
 			//console.log('number of people updated: '+n);
@@ -442,9 +451,29 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 		Person.findOne({personID: pID},function(err,doc){
 
 			//push new gesture record to history log
-    		doc.gesList.push({gesID:gID});
+			//if statements for fallen case. 
+			if(gID != 4 && ges_count > 4){
+				doc.gesList.push({gesID:gID});
+				doc.save();
+				ioWebApp.emit('live_ges',gID, pID);
+				ges_count =0;
+			}
+
+			else if(gID == 4 && ges_count > 4){
+				//if not fallen yet, save it. otherwise dont do anything. set fallen to true which will reset on interval
+				if(!fallen){
+					doc.gesList.push({gesID:gID});
+					doc.save();
+					ioWebApp.emit('live_ges',gID, pID);
+					fallen = true;
+					ges_count=0;
+				}
+
+			}
+
+    		/*doc.gesList.push({gesID:gID});
     		doc.save();
-    		ioWebApp.emit('live_ges',gID, pID);
+    		ioWebApp.emit('live_ges',gID, pID);*/
     	});
 	});
 
@@ -462,11 +491,16 @@ var ioSensor = ioServer.of('/nodes').on('connection',function(socket){
 		Person.findOne({personID: pID},function(err,doc){ 
 			var check;
 
-			if (doc.identified == false){
-				check = 1;
+			if(err){
+				console.log(err);
 			} else {
-				check = 0;
+				if (doc.identified == false){
+					check = 1;
+				} else {
+					check = 0;
+				}
 			}
+
 			socket.emit('res_checkUser', check);
 			console.log(check+' for checking user sent back to sensor with id: '+doc.nodeID);
 		});
