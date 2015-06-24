@@ -26,7 +26,7 @@ import io.socket.SocketIOException;
 /********************** Global variables *****************************/
 
 int frameCount = 0;
-int numCams = 2;
+int numCams = 1;
 int lostPersonId, lostCam;
 int savecounter = 0;            // Counts number of frames of data currenly saved
 int savesize = 200;             // Number of frames of data to collect
@@ -116,7 +116,7 @@ public void setup() {
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     
     socket = new SocketIO();
-    try{socket.connect("http://129.31.237.235:3000/nodes", new IOCallback(){
+    try{socket.connect("http://129.31.233.197:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
 		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
 		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
@@ -292,7 +292,7 @@ public void draw() {
 	for(cPersonIdent p : personIdents){
         
         if(p.comLast != null && p.com != null){
-			if (p.com.x == p.comLast.x && p.com.y == p.comLast.y && p.com.z == p.comLast.z){
+			if (p.com.x == p.comLast.x && p.com.y == p.comLast.y && p.com.z == p.comLast.z && p.identified == 1){
 				if(p.cams.size() == 1){
                                         println("Person lost through COM freeze");
                                         
@@ -307,8 +307,8 @@ public void draw() {
 			}
         }
     }
-     //debug();
-     //println("\n");
+    // debug();
+    // println("\n");
 
     // If new user data available from server, and not currently saving a new user on this node, then update Random Forest Model
     if(dataAvailable && !saving){
@@ -665,7 +665,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 400;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 250;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -711,7 +711,7 @@ public void identify(){
 						println("Sent ID to server");
 						
 						
-						// reset means and count for the case when a user ;eaves and re -enters within 10 seconds and they want to be re-identified
+						// reset means and count for the case when a user leaves and re -enters within 10 seconds and they want to be re-identified
 						p.guessIndex = 0;							// Reset guess count
 						for (int i=0; i<12;i++){
 							p.featDimMean[i] = 0;					// Reset means
@@ -722,7 +722,7 @@ public void identify(){
 						
 					}
 					
-					if( ((mse < mseThresh) && (!IdAvailable)) && !debugForceNew ){
+					if( ((mse < mseThresh) && (!IdAvailable))  ){
 						println("Guessed ID not available, resetting guess count & means");
 						p.guessIndex = 0;							// Reset guess count
 						for (int i=0; i<12;i++){
@@ -730,7 +730,7 @@ public void identify(){
 						}
 					}
 					
-					if( ((mse > mseThresh) && (mse < 10000)) || debugForceNew ){        // mse < 10,000 check since sometimes ghosts with feature size all zeroes get saved.
+					if( ((mse > mseThresh) && (mse < 20000))  ){        // mse < 10,000 check since sometimes ghosts with feature size all zeroes get saved.
 						// New user identified. Request new global person ID from server
 						println("New user detected, requested unique ID");
 						socket.emit("req_new_ID");
@@ -786,13 +786,24 @@ public void identify(){
 					saving = false; 
 					println("sent JSON Array");
                     socket.emit("rec_data", outgoing);
+					
+					
+					p.guessIndex = 0;							// Reset guess count
+					for (int i=0; i<12;i++){
+						p.featDimMean[i] = 0;					// Reset means
+					}
+					
+					
+					
+					
                 }
          
                 else{                               // Else collect more data and add to ArrayList 'textdata'
                     addData(p.gpersonId, p.featDim); 
                     for(int i=0;i<12;i++){ 
 						means[i] += p.featDim[i]; 	// Accumulate data to calculate the mean once 'savesize' number of frames are saved
-					}       
+		println("savecounter: "+savecounter);
+                }       
 					
                     //JSON object filled with new data
 					JSONObject temp = new JSONObject();
@@ -819,6 +830,7 @@ public void gesture(){
   if(train_gesture){
       index = findLocalIdent(globalId);  // find index of where the global person is held in the global array
       
+    if(index != -1){
     if(personIdents.get(index).identified == 1){  
       
       // start timer for gesture training
@@ -839,7 +851,10 @@ public void gesture(){
         println("saved pose");
       }
     }
-    
+    }
+    else{
+      train_gesture = false;
+    }
   }
   
   //track the gesture
