@@ -116,7 +116,7 @@ public void setup() {
     forestfile = (sketchPath + "/model.xml").replace('\\', '/'); // Path to model.xml, but with '\' replaced with '/' since '\' is the escape character
     
     socket = new SocketIO();
-    try{socket.connect("http://129.31.233.197:3000/nodes", new IOCallback(){
+    try{socket.connect("http://129.31.235.42:3000/nodes", new IOCallback(){
 		public void onMessage(JSONObject json, IOAcknowledge ack){println("Server sent JSON");}
 		public void onMessage(String data, IOAcknowledge ack) {println("Server sent Data",data);}
 		public void onError(SocketIOException socketIOException) {println("Error Occurred");socketIOException.printStackTrace();}
@@ -665,7 +665,7 @@ public void identify(){
 
     int pIndex;
     float mse;
-    float mseThresh = 250;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
+    float mseThresh = 300;		// probability of MSE >100 for saved user should be 0.02, bigger sometimes due to bad sensor data, use 100 - > 500 for safety.
     
     for(cPersonIdent p : personIdents){
         if(p.featDim[12]==1){
@@ -679,7 +679,7 @@ public void identify(){
                     testRow.put(0, col, p.featDim[col]);
                 }
                         
-                if(p.guessIndex < 20){										  	// Make 20 guesses then find mode
+                if(p.guessIndex < 20){										  				// Make 20 guesses then find mode
                     p.guesses[p.guessIndex] = int(forest.predict(testRow));   	// Guess person using random forrest model     
                     p.guessIndex = p.guessIndex + 1;
                     
@@ -714,11 +714,10 @@ public void identify(){
 						// reset means and count for the case when a user leaves and re -enters within 10 seconds and they want to be re-identified
 						p.guessIndex = 0;							// Reset guess count
 						for (int i=0; i<12;i++){
-							p.featDimMean[i] = 0;					// Reset means
+							p.featDimMean[i] = 0;				// Reset means
 						}
 						
-						
-						
+
 						
 					}
 					
@@ -730,7 +729,7 @@ public void identify(){
 						}
 					}
 					
-					if( ((mse > mseThresh) && (mse < 20000))  ){        // mse < 10,000 check since sometimes ghosts with feature size all zeroes get saved.
+					if( ((mse > mseThresh) && (mse < 10000))  ){        // mse < 10,000 check since sometimes ghosts with feature size all zeroes get saved.
 						// New user identified. Request new global person ID from server
 						println("New user detected, requested unique ID");
 						socket.emit("req_new_ID");
@@ -787,24 +786,21 @@ public void identify(){
 					println("sent JSON Array");
                     socket.emit("rec_data", outgoing);
 					
-					
-					p.guessIndex = 0;							// Reset guess count
+					//Reset means and count for the case user leaves and re-enters within 10 seconds
+					p.guessIndex = 0;								// Reset guess count
 					for (int i=0; i<12;i++){
 						p.featDimMean[i] = 0;					// Reset means
 					}
-					
-					
-					
 					
                 }
          
                 else{                               // Else collect more data and add to ArrayList 'textdata'
                     addData(p.gpersonId, p.featDim); 
                     for(int i=0;i<12;i++){ 
-						means[i] += p.featDim[i]; 	// Accumulate data to calculate the mean once 'savesize' number of frames are saved
-		println("savecounter: "+savecounter);
+	            means[i] += p.featDim[i]; 	// Accumulate data to calculate the mean once 'savesize' number of frames are saved
+		    
                 }       
-					
+			println("savecounter: "+savecounter);		
                     //JSON object filled with new data
 					JSONObject temp = new JSONObject();
 					try {  
