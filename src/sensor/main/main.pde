@@ -791,6 +791,7 @@ public void identify(){
 					for (int i=0; i<12;i++){
 						p.featDimMean[i] = 0;					// Reset means
 					}
+	
 					
                 }
          
