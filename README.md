@@ -1,2 +1,1 @@
-# src
-Trunk code
+EE3 Group Project Code
