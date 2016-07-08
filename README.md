@@ -1,4 +1,4 @@
-# Occusense: Occupancy Sensing With Machine Learning And 3D imaging. 
+# Occusense: Occupancy Sensing With Machine Learning and 3D Imaging. 
 
 ## Third Year Group Projects in collaboration with Laing'O'Rourke.
 This group project is born from the colaboriation between the construction company Laing'o'Rourke and a group of 8 students from Imperial College London. The main objectives of this project was to design a system able to detect, monitor and identify human behaviours. 
